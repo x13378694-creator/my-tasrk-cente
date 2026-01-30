@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>指挥部 v4.0 | 任务 & SOP & 同步</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap');
+        body { font-family: 'Inter', sans-serif; background-color: #0D0D0D; color: #F3F4F6; height: 100vh; overflow: hidden; }
+        .bento-card { background: #1A1A1A; border: 1px solid #2D2D2D; transition: all 0.3s ease; }
+        .glass-header { background: rgba(26, 26, 26, 0.9); backdrop-filter: blur(12px); border-bottom: 1px solid #2D2D2D; }
+        .progress-bar { transition: width 0.6s cubic-bezier(0.22, 1, 0.36, 1); }
+        ::-webkit-scrollbar { width: 4px; }
+        ::-webkit-scrollbar-thumb { background: #333; border-radius: 10px; }
+        .neon-glow { box-shadow: 0 0 15px rgba(139, 92, 246, 0.3); }
+    </style>
+</head>
+<body class="flex flex-col">
+
+    <nav class="glass-header px-6 py-3 flex justify-between items-center z-50">
+        <div class="flex items-center gap-4">
+            <h1 class="text-sm font-black tracking-[0.2em] text-purple-500">COMMAND_CENTER</h1>
+            <div id="auth-status" class="hidden">
+                <button onclick="requestPermission()" class="text-[10px] bg-purple-600 text-white px-3 py-1 rounded-full animate-pulse font-bold">
+                    授权通知权限
+                </button>
+            </div>
+        </div>
+        <div class="flex items-center gap-6 text-[11px]">
+            <div class="flex items-center gap-2 text-gray-400">
+                <span id="sync-indicator" class="w-2 h-2 rounded-full bg-yellow-500"></span>
+                本地模式 (待开启云同步)
+            </div>
+            <div class="h-4 w-[1px] bg-gray-800"></div>
+            <div id="global-stats" class="text-purple-400 font-mono">TOTAL_PROGRESS: 0%</div>
+        </div>
+    </nav>
+
+    <main class="flex-1 grid grid-cols-12 gap-4 p-4 overflow-hidden">
+        
+        <section class="col-span-12 md:col-span-3 flex flex-col gap-4 overflow-hidden">
+            <div class="bento-card rounded-2xl p-4 flex flex-col h-full overflow-hidden">
+                <div class="flex justify-between items-center mb-4 text-gray-500">
+                    <span class="text-[10px] font-bold uppercase tracking-widest">任务序列</span>
+                    <button onclick="createNewTask()" class="hover:text-purple-500 transition-colors">
+                        <i data-lucide="plus-circle" class="w-5 h-5"></i>
+                    </button>
+                </div>
+                <div id="task-list" class="flex-1 overflow-y-auto space-y-2 pr-1">
+                    </div>
+            </div>
+        </section>
+
+        <section class="col-span-12 md:col-span-9 grid grid-rows-2 gap-4 overflow-hidden">
+            
+            <div class="bento-card rounded-2xl p-6 flex flex-col overflow-hidden relative">
+                <div class="flex justify-between items-start mb-6">
+                    <div class="space-y-1">
+                        <h2 id="current-task-title" class="text-2xl font-bold tracking-tight">请先选择任务</h2>
+                        <div class="flex items-center gap-3">
+                            <input type="time" id="task-reminder-input" onchange="updateTaskTime()" class="bg-purple-900/20 border border-purple-500/30 text-purple-400 text-xs rounded px-2 py-1 outline-none">
+                            <span class="text-[10px] text-gray-500 italic">每日重复提醒已就绪</span>
+                        </div>
+                    </div>
+                    <div id="detail-progress-percent" class="text-4xl font-black text-purple-500 opacity-50">0%</div>
+                </div>
+                
+                <div class="w-full h-1.5 bg-gray-800 rounded-full mb-6 overflow-hidden">
+                    <div id="detail-progress-bar" class="progress-bar h-full bg-purple-500 neon-glow" style="width: 0%"></div>
+                </div>
+
+                <div id="subtask-container" class="flex-1 overflow-y-auto space-y-3 mb-4 pr-2">
+                    </div>
+
+                <div class="flex gap-2">
+                    <input id="new-subtask-input" type="text" placeholder="输入下一步作战方案..." class="flex-1 bg-white/5 border border-gray-800 rounded-xl px-4 py-3 text-sm focus:border-purple-500 outline-none transition-all">
+                    <button onclick="addSubTask()" class="bg-purple-600 hover:bg-purple-700 px-6 rounded-xl text-sm font-bold transition-all active:scale-95">添加步骤</button>
+                </div>
+            </div>
+
+            <div class="bento-card rounded-2xl p-6 flex flex-col overflow-hidden">
+                <div class="flex justify-between items-center mb-4">
+                    <div class="flex gap-4">
+                        <button onclick="showSopSection('sop')" id="tab-sop" class="text-xs font-bold text-purple-500 border-b-2 border-purple-500 pb-1">SOP 实验室</button>
+                        <button onclick="showSopSection('manual')" id="tab-manual" class="text-xs font-bold text-gray-500 pb-1">系统使用手册</button>
+                    </div>
+                    <button onclick="toggleSopEdit()" id="sop-edit-btn" class="text-[10px] bg-white/5 px-3 py-1 rounded hover:bg-white/10">编辑内容</button>
+                </div>
+                
+                <div id="sop-display" class="flex-1 overflow-y-auto prose prose-invert prose-sm max-w-none text-gray-400 leading-relaxed">
+                    </div>
+                <textarea id="sop-editor" class="hidden flex-1 bg-black/40 border border-gray-800 rounded-xl p-4 text-sm font-mono text-purple-300 outline-none resize-none"></textarea>
+                
+                <div class="mt-4 pt-4 border-t border-gray-800 flex items-center justify-between">
+                    <input id="reflection-input" type="text" placeholder="任务完成后，在此输入复盘心得..." class="bg-transparent text-xs text-gray-500 italic w-full outline-none">
+                    <div id="last-saved" class="text-[10px] text-gray-700 whitespace-nowrap ml-4">数据已同步至本地</div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <script>
+        // --- 核心逻辑变量 ---
+        let tasks = JSON.parse(localStorage.getItem('commander_v4_tasks')) || [];
+        let currentTaskId = null;
+        let activeTab = 'sop';
+
+        // --- 初始化指挥部 ---
+        function init() {
+            lucide.createIcons();
+            renderTaskList();
+            checkNotificationPermission();
+            setInterval(checkDailyReminders, 60000); // 每分钟巡检一次提醒
+            
+            // 预设使用手册内容 (如果用户没写过)
+            const manualContent = `# 📘 指挥部使用手册\n\n### 1. 核心操作\n- **创建任务**：点击左侧“+”号。\n- **子步骤**：在右侧输入框添加，勾选即实时计算进度。\n- **定时提醒**：设置时间后，系统将每天在此时刻弹出通知。\n\n### 2. 手机端适配 (重要)\n- **iPhone**：Safari打开 -> 分享 -> **添加到主屏幕**。从桌面图标进入方可开启每日通知。\n- **Android**：Chrome打开 -> 菜单 -> 添加到主屏幕。\n\n### 3. SOP 粘贴\n- 将 Gemini 生成的 SOP 拷贝后，点击“编辑内容”粘贴，支持 Markdown 渲染。`;
+            window.manualTemplate = manualContent;
+        }
+
+        // --- 任务核心操作 ---
+        function createNewTask() {
+            const title = prompt("请输入作战任务目标:");
+            if (!title) return;
+            const newTask = {
+                id: Date.now(),
+                title: title,
+                subtasks: [],
+                reminderTime: "",
+                lastReminderDate: "",
+                sop: "",
+                manual: window.manualTemplate,
+                reflection: "",
+                completed: false
+            };
+            tasks.unshift(newTask);
+            saveData();
+            renderTaskList();
+            selectTask(newTask.id);
+        }
+
+        function renderTaskList() {
+            const list = document.getElementById('task-list');
+            list.innerHTML = tasks.map(task => {
+                const prog = calculateProgress(task);
+                const isActive = currentTaskId === task.id;
+                return `
+                    <div onclick="selectTask(${task.id})" class="p-3 rounded-xl cursor-pointer transition-all border ${isActive ? 'bg-purple-600/10 border-purple-500/50' : 'hover:bg-white/5 border-transparent'}">
+                        <div class="flex justify-between items-center mb-2">
+                            <span class="text-xs font-semibold ${task.completed ? 'line-through text-gray-600' : ''}">${task.title}</span>
+                            <span class="text-[9px] font-mono text-purple-400">${prog}%</span>
+                        </div>
+                        <div class="w-full h-[2px] bg-gray-800 rounded-full">
+                            <div class="bg-purple-500 h-full progress-bar" style="width: ${prog}%"></div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+            updateGlobalStats();
+        }
+
+        function selectTask(id) {
+            currentTaskId = id;
+            const task = tasks.find(t => t.id === id);
+            document.getElementById('current-task-title').innerText = task.title;
+            document.getElementById('task-reminder-input').value = task.reminderTime;
+            document.getElementById('reflection-input').value = task.reflection;
+            renderSubTasks();
+            showSopSection(activeTab);
+            renderTaskList();
+            lucide.createIcons();
+        }
+
+        // --- 子任务逻辑 ---
+        function addSubTask() {
+            const input = document.getElementById('new-subtask-input');
+            if (!input.value || !currentTaskId) return;
+            const task = tasks.find(t => t.id === currentTaskId);
+            task.subtasks.push({ id: Date.now(), text: input.value, done: false });
+            input.value = "";
+            saveData();
+            renderSubTasks();
+            renderTaskList();
+        }
+
+        function toggleSubTask(subId) {
+            const task = tasks.find(t => t.id === currentTaskId);
+            const sub = task.subtasks.find(s => s.id === subId);
+            sub.done = !sub.done;
+            saveData();
+            renderSubTasks();
+            renderTaskList();
+        }
+
+        function renderSubTasks() {
+            const container = document.getElementById('subtask-container');
+            const task = tasks.find(t => t.id === currentTaskId);
+            if (!task) return;
+            const prog = calculateProgress(task);
+            document.getElementById('detail-progress-bar').style.width = prog + '%';
+            document.getElementById('detail-progress-percent').innerText = prog + '%';
+            container.innerHTML = task.subtasks.map(sub => `
+                <div class="flex items-center gap-3 bg-white/[0.03] p-3 rounded-xl hover:bg-white/[0.06] transition-colors group">
+                    <input type="checkbox" ${sub.done ? 'checked' : ''} onchange="toggleSubTask(${sub.id})" class="w-4 h-4 rounded border-gray-700 bg-transparent text-purple-600 focus:ring-purple-500">
+                    <span class="text-sm flex-1 ${sub.done ? 'line-through text-gray-600' : ''}">${sub.text}</span>
+                    <button onclick="deleteSubTask(${sub.id})" class="opacity-0 group-hover:opacity-100 text-gray-600 hover:text-red-500 transition-all"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
+                </div>
+            `).join('');
+            lucide.createIcons();
+        }
+
+        // --- SOP & 手册切换 ---
+        function showSopSection(type) {
+            activeTab = type;
+            const task = tasks.find(t => t.id === currentTaskId);
+            const display = document.getElementById('sop-display');
+            const editor = document.getElementById('sop-editor');
+            
+            document.getElementById('tab-sop').className = `text-xs font-bold pb-1 ${type === 'sop' ? 'text-purple-500 border-b-2 border-purple-500' : 'text-gray-500'}`;
+            document.getElementById('tab-manual').className = `text-xs font-bold pb-1 ${type === 'manual' ? 'text-purple-500 border-b-2 border-purple-500' : 'text-gray-500'}`;
+
+            if (!task) return;
+            const content = type === 'sop' ? (task.sop || "请点击编辑，粘贴 AI 生成的 SOP 内容...") : task.manual;
+            display.innerHTML = marked.parse(content);
+            editor.value = content;
+        }
+
+        function toggleSopEdit() {
+            const display = document.getElementById('sop-display');
+            const editor = document.getElementById('sop-editor');
+            const btn = document.getElementById('sop-edit-btn');
+            const task = tasks.find(t => t.id === currentTaskId);
+
+            if (editor.classList.contains('hidden')) {
+                display.classList.add('hidden');
+                editor.classList.remove('hidden');
+                btn.innerText = "完成并保存";
+            } else {
+                if (activeTab === 'sop') task.sop = editor.value;
+                else task.manual = editor.value;
+                display.innerHTML = marked.parse(editor.value);
+                display.classList.remove('hidden');
+                editor.classList.add('hidden');
+                btn.innerText = "编辑内容";
+                saveData();
+            }
+        }
+
+        // --- 提醒系统逻辑 ---
+        function checkNotificationPermission() {
+            if (Notification.permission !== "granted") {
+                document.getElementById('auth-status').classList.remove('hidden');
+            }
+        }
+
+        function requestPermission() {
+            Notification.requestPermission().then(perm => {
+                if (perm === "granted") {
+                    document.getElementById('auth-status').classList.add('hidden');
+                    new Notification("指挥部：通知引擎已离线激活");
+                }
+            });
+        }
+
+        function checkDailyReminders() {
+            const now = new Date();
+            const today = now.toISOString().split('T')[0];
+            const nowTime = now.getHours().toString().padStart(2, '0') + ":" + now.getMinutes().toString().padStart(2, '0');
+
+            tasks.forEach(t => {
+                if (t.reminderTime === nowTime && t.lastReminderDate !== today && calculateProgress(t) < 100) {
+                    new Notification(`指挥部提醒: ${t.title}`, {
+                        body: `当前进度为 ${calculateProgress(t)}%，请按照 SOP 执行下一步骤！`,
+                        icon: "https://cdn-icons-png.flaticon.com/512/1827/1827379.png"
+                    });
+                    t.lastReminderDate = today;
+                    saveData();
+                }
+            });
+        }
+
+        function updateTaskTime() {
+            const task = tasks.find(t => t.id === currentTaskId);
+            task.reminderTime = document.getElementById('task-reminder-input').value;
+            saveData();
+        }
+
+        // --- 工具函数 ---
+        function calculateProgress(t) {
+            if (!t.subtasks || t.subtasks.length === 0) return 0;
+            return Math.round((t.subtasks.filter(s => s.done).length / t.subtasks.length) * 100);
+        }
+
+        function updateGlobalStats() {
+            if (tasks.length === 0) return;
+            const total = tasks.reduce((acc, t) => acc + calculateProgress(t), 0);
+            const avg = Math.round(total / tasks.length);
+            document.getElementById('global-stats').innerText = `TOTAL_PROGRESS: ${avg}%`;
+        }
+
+        function saveData() {
+            localStorage.setItem('commander_v4_tasks', JSON.stringify(tasks));
+            document.getElementById('last-saved').innerText = `最后保存: ${new Date().toLocaleTimeString()}`;
+        }
+
+        window.onload = init;
+    </script>
+</body>
+</html>
