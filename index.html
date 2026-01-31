@@ -3,66 +3,72 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>指挥部 v4.6 | 终极同步与迁移版</title>
+    <title>最终指挥部 v4.7 | 数据已同步</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <style>
-        body { background-color: #0D0D0D; color: #F3F4F6; height: 100vh; overflow: hidden; font-family: system-ui, -apple-system, sans-serif; }
-        .bento-card { background: #1A1A1A; border: 1px solid #2D2D2D; transition: all 0.2s ease; }
-        .progress-bar { transition: width 0.5s ease; }
+        body { background-color: #0D0D0D; color: #F3F4F6; height: 100vh; overflow: hidden; font-family: system-ui, sans-serif; }
+        .bento-card { background: #1A1A1A; border: 1px solid #2D2D2D; transition: all 0.3s ease; }
+        .progress-bar { transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1); }
         ::-webkit-scrollbar { width: 4px; }
         ::-webkit-scrollbar-thumb { background: #333; border-radius: 10px; }
     </style>
 </head>
 <body class="flex flex-col">
-    <nav class="p-4 border-b border-gray-800 flex justify-between items-center bg-[#0D0D0D]/80 backdrop-blur-md z-50">
+    <nav class="p-4 border-b border-gray-800 flex justify-between items-center bg-[#0D0D0D]/90 backdrop-blur-md z-50">
         <div class="flex items-center gap-3">
-            <h1 class="text-xs font-black tracking-widest text-purple-500">COMMANDER_V4.6</h1>
+            <h1 class="text-xs font-black tracking-widest text-purple-500 uppercase">Task_Command</h1>
             <div id="sync-dot" class="w-2 h-2 rounded-full bg-red-500 animate-pulse"></div>
         </div>
-        <div class="flex gap-3 items-center">
-            <input id="sync-code-input" type="password" placeholder="输入同步密钥" class="bg-black text-[10px] border border-gray-800 rounded px-2 py-1 w-28 focus:border-purple-500 outline-none text-purple-400">
-            <button onclick="syncData()" class="text-[10px] bg-purple-600/20 text-purple-400 border border-purple-500/30 px-3 py-1 rounded hover:bg-purple-600/40 transition-all font-bold">同步数据</button>
+        <div class="flex gap-2 items-center">
+            <input id="sync-code-input" type="password" placeholder="密钥" class="bg-black text-[10px] border border-gray-800 rounded px-2 py-1 w-24 focus:border-purple-500 outline-none">
+            <button onclick="syncData()" class="text-[10px] bg-purple-600/20 text-purple-400 border border-purple-500/30 px-3 py-1 rounded hover:bg-purple-600/40 font-bold transition-all">同步</button>
         </div>
     </nav>
 
-    <main class="flex-1 flex flex-col md:flex-row p-2 gap-2 overflow-hidden">
-        <section class="w-full md:w-1/3 bento-card rounded-xl p-3 flex flex-col overflow-hidden">
-            <div class="flex justify-between items-center mb-3 text-[10px] font-bold text-gray-500">
-                MISSION LIST
-                <button onclick="addTask()" class="text-purple-500"><i data-lucide="plus-circle" class="w-5 h-5"></i></button>
+    <main class="flex-1 flex flex-col md:flex-row p-3 gap-3 overflow-hidden">
+        <section class="w-full md:w-1/3 bento-card rounded-2xl p-4 flex flex-col overflow-hidden">
+            <div class="flex justify-between items-center mb-4 border-b border-gray-800 pb-2">
+                <span class="text-[10px] font-bold text-gray-500 tracking-widest uppercase">任务序列</span>
+                <button onclick="addTask()" class="text-purple-500 hover:scale-110 transition-transform"><i data-lucide="plus" class="w-5 h-5"></i></button>
             </div>
-            <div id="list" class="flex-1 overflow-y-auto space-y-2"></div>
+            <div id="list" class="flex-1 overflow-y-auto space-y-2 pr-1"></div>
         </section>
 
-        <section class="flex-1 bento-card rounded-xl p-5 flex flex-col gap-4 overflow-hidden">
-            <div class="flex justify-between items-start">
-                <h2 id="title" class="text-xl font-bold italic">待命...</h2>
-                <div id="prog-text" class="text-3xl font-black text-purple-500 opacity-30">0%</div>
-            </div>
-            <div class="w-full h-1 bg-gray-800 rounded-full"><div id="bar" class="h-full bg-purple-500 progress-bar shadow-[0_0_10px_#8B5CF6]" style="width:0%"></div></div>
-            <div id="subs" class="flex-1 overflow-y-auto space-y-2 pr-1"></div>
-            <div class="flex gap-2"><input id="sub-in" placeholder="添加步骤..." class="flex-1 bg-white/5 border border-gray-800 rounded-xl px-4 py-2 text-sm">
-            <button onclick="addSub()" class="bg-purple-600 px-6 rounded-xl text-sm font-bold">添加</button></div>
-            
-            <div class="mt-2 pt-4 border-t border-gray-800 h-1/2 flex flex-col overflow-hidden">
-                <div class="flex justify-between text-[10px] mb-2 font-bold text-gray-500 uppercase">
-                    <div class="flex gap-4">
-                        <button onclick="showTab('sop')" id="tab-sop" class="text-purple-500 border-b border-purple-500">SOP 实验室</button>
-                        <button onclick="showTab('manual')" id="tab-manual">系统使用手册</button>
-                        <button onclick="showTab('migration')" id="tab-migration" class="text-yellow-500">数据迁移</button>
+        <section class="flex-1 grid grid-rows-2 gap-3 overflow-hidden">
+            <div class="bento-card rounded-2xl p-6 flex flex-col gap-4 overflow-hidden shadow-2xl">
+                <div class="flex justify-between items-start">
+                    <div class="space-y-1">
+                        <h2 id="title" class="text-2xl font-black italic tracking-tight text-white">请选择目标</h2>
+                        <div class="flex items-center gap-2">
+                            <input type="time" id="time-input" onchange="updateTime()" class="bg-purple-900/20 border border-purple-500/30 text-purple-400 text-[10px] rounded px-1 outline-none">
+                            <span class="text-[10px] text-gray-600 italic">每日重复提醒</span>
+                        </div>
                     </div>
-                    <button onclick="editSop()" id="edit-btn" class="text-purple-400">编辑</button>
+                    <div id="prog-text" class="text-4xl font-black text-purple-500 opacity-20">0%</div>
                 </div>
-                <div id="sop-view" class="flex-1 overflow-y-auto prose prose-invert prose-xs text-gray-400"></div>
-                <div id="migration-zone" class="hidden flex-1 flex flex-col gap-2">
-                    <p class="text-[10px] text-yellow-600 italic">在旧网页控制台输入 localStorage.getItem('commander_v4_tasks') 获取数据并粘贴到下方</p>
-                    <textarea id="migration-input" class="flex-1 bg-black text-[10px] p-2 rounded border border-gray-800" placeholder="粘贴旧数据 JSON..."></textarea>
-                    <button onclick="importData()" class="bg-yellow-600 text-white text-[10px] py-1 rounded">立即恢复数据</button>
+                <div class="w-full h-1 bg-gray-800 rounded-full overflow-hidden">
+                    <div id="bar" class="h-full bg-purple-500 shadow-[0_0_15px_rgba(139,92,246,0.6)] progress-bar" style="width:0%"></div>
                 </div>
-                <textarea id="sop-edit" class="hidden flex-1 bg-black text-xs p-4 rounded-xl border border-gray-800 outline-none"></textarea>
+                <div id="subs" class="flex-1 overflow-y-auto space-y-2 pr-1"></div>
+                <div class="flex gap-2">
+                    <input id="sub-in" placeholder="添加下一步作战步骤..." class="flex-1 bg-white/5 border border-gray-800 rounded-xl px-4 py-3 text-sm focus:border-purple-500 outline-none">
+                    <button onclick="addSub()" class="bg-purple-600 hover:bg-purple-700 px-6 rounded-xl text-sm font-bold active:scale-95 transition-all">添加</button>
+                </div>
+            </div>
+
+            <div class="bento-card rounded-2xl p-6 flex flex-col overflow-hidden">
+                <div class="flex justify-between items-center mb-4">
+                    <div class="flex gap-6">
+                        <button onclick="showTab('sop')" id="tab-sop" class="text-xs font-bold border-b-2 border-purple-500 text-purple-500 pb-1">SOP 作战手册</button>
+                        <button onclick="showTab('manual')" id="tab-manual" class="text-xs font-bold text-gray-500 pb-1">系统使用手册</button>
+                    </div>
+                    <button onclick="toggleEdit()" id="edit-btn" class="text-[10px] bg-white/5 px-3 py-1 rounded hover:bg-white/10">编辑内容</button>
+                </div>
+                <div id="view" class="flex-1 overflow-y-auto prose prose-invert prose-sm max-w-none text-gray-400"></div>
+                <textarea id="edit" class="hidden flex-1 bg-black/50 text-xs p-4 rounded-xl border border-gray-800 font-mono text-purple-300 outline-none resize-none"></textarea>
             </div>
         </section>
     </main>
@@ -72,111 +78,116 @@
         const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlsYndkdGhlZnBjcm9jbXZjY3B5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njk3OTk4MDksImV4cCI6MjA4NTM3NTgwOX0.f6_5e1UpdLmZHc2aTwQJMDPTNJxb1ZQqs2OBxCklZJ4';
         const supabase = supabasejs.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-        let tasks = JSON.parse(localStorage.getItem('cmd_v46')) || [];
+        // 注入你的原始数据
+        const initialData = [
+            {"id":1769786819936,"title":"写一篇公众号种草，话题忘记了","subtasks":[{"id":1769831964603,"text":"选题","done":false}],"reminderTime":"08:00","sop":"","completed":false},
+            {"id":1769774974790,"title":"终点系统网页制作","subtasks":[{"id":1769774994705,"text":"建立大纲","done":true},{"id":1769780006388,"text":"坚定自己的想法...","done":true},{"id":1769780063553,"text":"分享给朋友...","done":true},{"id":1769785151601,"text":"学会如何在github...","done":true},{"id":1769785458872,"text":"加入使用手册","done":true}],"reminderTime":"08:09","sop":"# 🎖️ 全能开发者协议 (v3.0)\n\n## 阶段一：建立大纲\n- 严禁 AI 直接开工。\n- 手动敲定功能大纲。","completed":false}
+        ];
+
+        let tasks = JSON.parse(localStorage.getItem('cmd_v47')) || initialData;
         let cur = null, activeTab = 'sop';
-        const manualMD = `# 📘 系统使用手册\n1. **设置密钥**：在右上角输入你的专属密码，点击同步。\n2. **手机同步**：手机打开网址，输入**相同密钥**点击同步即可。\n3. **数据安全**：密钥是你访问云端数据的唯一凭证，请妥善保管。`;
+        const manualMD = `# 📘 系统使用手册\n\n1. **创建任务**：点击左侧列表上方的紫色加号 (+)。\n2. **云同步**：在顶栏输入你的“专属密钥”，点击同步即可打通电脑和手机。\n3. **SOP 记录**：点击右下角编辑，将 AI 生成的攻略粘贴进去，支持 Markdown 渲染。\n4. **数据安全**：如果密钥为空，数据仅保存在浏览器本地。`;
 
         async function init() { 
             lucide.createIcons(); 
-            const savedCode = localStorage.getItem('user_sync_code');
-            if(savedCode) { document.getElementById('sync-code-input').value = savedCode; await pull(); }
+            const code = localStorage.getItem('user_sync_code');
+            if(code) { document.getElementById('sync-code-input').value = code; await pull(); }
             renderList();
+            if(tasks.length > 0) sel(tasks[0].id);
         }
 
         async function pull() {
             const code = document.getElementById('sync-code-input').value;
             if(!code) return;
             const { data } = await supabase.from('tasks_sync').select('data').eq('sync_code', code).maybeSingle();
-            if(data) { tasks = data.data; saveLocally(); renderList(); markSync(true); }
+            if(data) { tasks = data.data; saveLocal(); renderList(); mark(true); }
         }
 
         async function push() {
             const code = document.getElementById('sync-code-input').value;
-            if(!code) { alert("请先输入密钥"); return; }
+            if(!code) return;
             localStorage.setItem('user_sync_code', code);
             await supabase.from('tasks_sync').upsert({ id: code, sync_code: code, data: tasks });
-            markSync(true);
+            mark(true);
         }
 
-        function markSync(ok) { document.getElementById('sync-dot').className = `w-2 h-2 rounded-full ${ok?'bg-green-500':'bg-red-500'}`; }
-        function saveLocally() { localStorage.setItem('cmd_v46', JSON.stringify(tasks)); }
+        function mark(ok) { document.getElementById('sync-dot').className = `w-2 h-2 rounded-full ${ok?'bg-green-500 shadow-[0_0_8px_#22C55E]':'bg-red-500'}`; }
+        function saveLocal() { localStorage.setItem('cmd_v47', JSON.stringify(tasks)); }
         async function syncData() { await push(); await pull(); }
 
         function addTask() {
-            let t = prompt("任务名称:");
+            let t = prompt("设定新目标:");
             if(!t) return;
-            tasks.unshift({id:Date.now(), t, subs:[], time:"", sop:"", done:false});
+            tasks.unshift({id:Date.now(), title:t, subtasks:[], reminderTime:"", sop:"", done:false});
             saveAndSync(); renderList(); sel(tasks[0].id);
         }
 
         function renderList() {
             document.getElementById('list').innerHTML = tasks.map(x => `
-                <div onclick="sel(${x.id})" class="p-3 rounded-xl cursor-pointer border ${cur===x.id?'border-purple-500 bg-purple-500/10':'border-gray-800'}">
-                    <div class="flex justify-between text-[10px] mb-1 font-bold"><span>${x.t}</span><span class="text-purple-500">${prog(x)}%</span></div>
-                    <div class="w-full h-[2px] bg-gray-800 rounded-full"><div class="bg-purple-500 h-full progress-bar" style="width:${prog(x)}%"></div></div>
+                <div onclick="sel(${x.id})" class="p-3 rounded-xl cursor-pointer border transition-all ${cur===x.id?'border-purple-500 bg-purple-500/10 shadow-lg shadow-purple-500/5':'border-gray-800 hover:border-gray-700'}">
+                    <div class="flex justify-between text-[10px] mb-2 font-bold uppercase">
+                        <span>${x.title}</span><span class="text-purple-500 font-mono">${prog(x)}%</span>
+                    </div>
+                    <div class="w-full h-[2px] bg-gray-800 rounded-full overflow-hidden">
+                        <div class="bg-purple-500 h-full" style="width:${prog(x)}%"></div>
+                    </div>
                 </div>`).join('');
         }
 
         function sel(id) {
             cur = id; let x = tasks.find(v => v.id === id);
-            document.getElementById('title').innerText = x.t;
+            document.getElementById('title').innerText = x.title;
+            document.getElementById('time-input').value = x.reminderTime || "";
             renderSubs(); showTab(activeTab); renderList();
         }
 
         function addSub() {
             let i = document.getElementById('sub-in');
             if(!i.value || !cur) return;
-            tasks.find(x => x.id === cur).subs.push({id:Date.now(), d:i.value, ok:false});
+            tasks.find(x => x.id === cur).subtasks.push({id:Date.now(), text:i.value, done:false});
             i.value = ""; saveAndSync(); renderSubs(); renderList();
         }
 
         function toggle(sid) {
-            let s = tasks.find(x => x.id === cur).subs.find(v => v.id === sid);
-            s.ok = !s.ok; saveAndSync(); renderSubs(); renderList();
+            let s = tasks.find(x => x.id === cur).subtasks.find(v => v.id === sid);
+            s.done = !s.done; saveAndSync(); renderSubs(); renderList();
         }
 
         function renderSubs() {
             let x = tasks.find(v => v.id === cur);
             document.getElementById('bar').style.width = prog(x) + '%';
             document.getElementById('prog-text').innerText = prog(x) + '%';
-            document.getElementById('subs').innerHTML = x.subs.map(s => `
-                <div class="flex items-center gap-3 bg-white/5 p-3 rounded-xl">
-                    <input type="checkbox" ${s.ok?'checked':''} onchange="toggle(${s.id})" class="accent-purple-500">
-                    <span class="text-sm ${s.ok?'line-through text-gray-600':''}">${s.d}</span>
+            document.getElementById('subs').innerHTML = x.subtasks.map(s => `
+                <div class="flex items-center gap-3 bg-white/[0.03] p-3 rounded-xl hover:bg-white/[0.06]">
+                    <input type="checkbox" ${s.done?'checked':''} onchange="toggle(${s.id})" class="accent-purple-500 w-4 h-4 rounded">
+                    <span class="text-sm ${s.done?'line-through text-gray-600':''}">${s.text}</span>
                 </div>`).join('');
+            lucide.createIcons();
         }
 
         function showTab(type) {
             activeTab = type;
             const x = tasks.find(v => v.id === cur);
-            const view = document.getElementById('sop-view');
-            const mig = document.getElementById('migration-zone');
-            
-            mig.classList.add('hidden'); view.classList.remove('hidden');
-            document.getElementById('tab-sop').className = type === 'sop' ? 'text-purple-500 border-b border-purple-500' : '';
-            document.getElementById('tab-manual').className = type === 'manual' ? 'text-purple-500 border-b border-purple-500' : '';
-
-            if(type === 'manual') view.innerHTML = marked.parse(manualMD);
-            else if(type === 'migration') { view.classList.add('hidden'); mig.classList.remove('hidden'); }
-            else view.innerHTML = marked.parse(x ? (x.sop || "点编辑粘贴 SOP") : "请选择任务");
+            const view = document.getElementById('view');
+            document.getElementById('tab-sop').className = `text-xs font-bold pb-1 ${type === 'sop' ? 'text-purple-500 border-b-2 border-purple-500' : 'text-gray-500'}`;
+            document.getElementById('tab-manual').className = `text-xs font-bold pb-1 ${type === 'manual' ? 'text-purple-500 border-b-2 border-purple-500' : 'text-gray-500'}`;
+            const md = type === 'manual' ? manualMD : (x ? (x.sop || "_点击编辑粘贴 SOP 内容_") : "未选择任务");
+            view.innerHTML = marked.parse(md);
+            document.getElementById('edit').value = md;
         }
 
         function toggleEdit() {
-            let v = document.getElementById('sop-view'), e = document.getElementById('sop-edit'), b = document.getElementById('edit-btn'), x = tasks.find(v => v.id === cur);
-            if(e.classList.contains('hidden')){ v.classList.add('hidden'); e.classList.remove('hidden'); e.value = x.sop; b.innerText = "完成"; }
-            else { x.sop = e.value; v.innerHTML = marked.parse(e.value); v.classList.remove('hidden'); e.classList.add('hidden'); b.innerText = "编辑"; saveAndSync(); }
+            let v = document.getElementById('view'), e = document.getElementById('edit'), b = document.getElementById('edit-btn'), x = tasks.find(v => v.id === cur);
+            if(e.classList.contains('hidden')){ v.classList.add('hidden'); e.classList.remove('hidden'); b.innerText = "保存";
+            } else { 
+                if(activeTab === 'sop') x.sop = e.value;
+                v.innerHTML = marked.parse(e.value); v.classList.remove('hidden'); e.classList.add('hidden'); b.innerText = "编辑内容"; saveAndSync(); 
+            }
         }
 
-        function importData() {
-            try {
-                const raw = document.getElementById('migration-input').value;
-                const imported = JSON.parse(raw);
-                tasks = imported; saveAndSync(); renderList(); alert("数据迁移成功！点击同步上传云端。");
-            } catch(e) { alert("数据格式错误，请检查粘贴内容。"); }
-        }
-
-        function prog(x) { return x.subs.length ? Math.round(x.subs.filter(s=>s.ok).length/x.subs.length*100) : 0; }
-        function saveAndSync() { saveLocally(); push(); }
+        function prog(x) { return x.subtasks.length ? Math.round(x.subtasks.filter(s=>s.done).length/x.subtasks.length*100) : 0; }
+        function saveAndSync() { saveLocal(); push(); }
+        function updateTime() { tasks.find(v => v.id === cur).reminderTime = document.getElementById('time-input').value; saveAndSync(); }
         window.onload = init;
     </script>
 </body>
