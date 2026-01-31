@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>指挥部 v5.0 | 最终稳定版</title>
+    <title>指挥部 v5.1 | 防崩溃稳固版</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
@@ -14,7 +14,8 @@
         .progress-bar { transition: width 0.5s ease; }
         ::-webkit-scrollbar { width: 4px; }
         ::-webkit-scrollbar-thumb { background: #333; border-radius: 10px; }
-        .neon-border:focus { border-color: #8B5CF6; box-shadow: 0 0 10px rgba(139, 92, 246, 0.4); }
+        /* 强制显示加号 */
+        .force-show { display: block !important; }
     </style>
 </head>
 <body class="flex flex-col">
@@ -23,10 +24,11 @@
         <div class="flex items-center gap-3">
             <h1 class="text-xs font-black tracking-widest text-purple-500 uppercase">COMMAND_HQ</h1>
             <div id="sync-dot" class="w-2.5 h-2.5 rounded-full bg-red-500"></div>
+            <span id="status-msg" class="text-[9px] text-gray-500">离线</span>
         </div>
         <div class="flex gap-2 items-center">
-            <input id="sync-code-input" type="password" placeholder="密钥" onchange="saveKeyOnly()" class="bg-black text-[10px] border border-gray-800 rounded px-2 py-1 w-24 neon-border outline-none text-purple-400">
-            <button onclick="syncData()" class="text-[10px] bg-purple-600 text-white px-3 py-1 rounded hover:bg-purple-500 font-bold transition-all">同步</button>
+            <input id="sync-code-input" type="password" placeholder="输入密钥" class="bg-black text-[10px] border border-gray-800 rounded px-2 py-1 w-24 outline-none text-purple-400">
+            <button onclick="handleSync()" class="text-[10px] bg-purple-600 text-white px-3 py-1 rounded hover:bg-purple-500 font-bold">同步</button>
         </div>
     </nav>
 
@@ -34,16 +36,18 @@
         <section class="w-full md:w-1/3 bento-card rounded-2xl p-4 flex flex-col overflow-hidden">
             <div class="flex justify-between items-center mb-4 border-b border-gray-800 pb-2">
                 <span class="text-[10px] font-bold text-gray-500 tracking-widest uppercase">任务序列</span>
-                <button onclick="addTask()" class="text-purple-500 hover:scale-125 transition-transform"><i data-lucide="plus-circle" class="w-6 h-6"></i></button>
+                <button onclick="addTask()" class="text-purple-500 hover:scale-125 transition-transform p-1 bg-white/5 rounded-full">
+                    <i data-lucide="plus" class="w-5 h-5"></i>
+                </button>
             </div>
             <div id="list" class="flex-1 overflow-y-auto space-y-2 pr-1"></div>
         </section>
 
         <section class="flex-1 grid grid-rows-2 gap-3 overflow-hidden">
-            <div class="bento-card rounded-2xl p-6 flex flex-col gap-4 overflow-hidden">
+            <div class="bento-card rounded-2xl p-6 flex flex-col gap-4 overflow-hidden relative">
                 <div class="flex justify-between items-start">
                     <div class="space-y-1">
-                        <h2 id="title" class="text-2xl font-black italic text-white tracking-tight">等待目标...</h2>
+                        <h2 id="title" class="text-2xl font-black italic text-white tracking-tight">准备就绪</h2>
                         <input type="time" id="time-input" onchange="updateTime()" class="bg-purple-900/20 border border-purple-500/30 text-purple-400 text-[10px] rounded px-1">
                     </div>
                     <div id="prog-text" class="text-4xl font-black text-purple-500 opacity-20">0%</div>
@@ -53,18 +57,18 @@
                 </div>
                 <div id="subs" class="flex-1 overflow-y-auto space-y-2 pr-1"></div>
                 <div class="flex gap-2">
-                    <input id="sub-in" placeholder="输入作战步骤..." class="flex-1 bg-white/5 border border-gray-800 rounded-xl px-4 py-3 text-sm focus:border-purple-500 outline-none transition-all">
-                    <button onclick="addSub()" class="bg-purple-600 hover:bg-purple-700 px-6 rounded-xl text-sm font-bold active:scale-95">添加</button>
+                    <input id="sub-in" placeholder="输入步骤..." class="flex-1 bg-white/5 border border-gray-800 rounded-xl px-4 py-3 text-sm focus:border-purple-500 outline-none w-full">
+                    <button onclick="addSub()" class="bg-purple-600 hover:bg-purple-700 px-6 rounded-xl text-sm font-bold whitespace-nowrap">添加</button>
                 </div>
             </div>
 
             <div class="bento-card rounded-2xl p-6 flex flex-col overflow-hidden">
                 <div class="flex justify-between items-center mb-4">
-                    <div class="flex gap-6">
-                        <button onclick="showTab('sop')" id="tab-sop" class="text-xs font-bold pb-1 text-purple-500 border-b-2 border-purple-500">SOP 作战手册</button>
-                        <button onclick="showTab('manual')" id="tab-manual" class="text-xs font-bold pb-1 text-gray-500">使用手册</button>
+                    <div class="flex gap-4">
+                        <button onclick="showTab('sop')" id="tab-sop" class="text-xs font-bold pb-1 text-purple-500 border-b-2 border-purple-500">SOP 手册</button>
+                        <button onclick="showTab('manual')" id="tab-manual" class="text-xs font-bold pb-1 text-gray-500">使用说明</button>
                     </div>
-                    <button onclick="toggleEdit()" id="edit-btn" class="text-[10px] bg-white/5 px-3 py-1 rounded">编辑 SOP</button>
+                    <button onclick="toggleEdit()" id="edit-btn" class="text-[10px] bg-white/5 px-3 py-1 rounded">编辑</button>
                 </div>
                 <div id="view" class="flex-1 overflow-y-auto prose prose-invert prose-sm max-w-none text-gray-400"></div>
                 <textarea id="edit" class="hidden flex-1 bg-black/50 text-xs p-4 rounded-xl border border-gray-800 font-mono text-purple-300 outline-none resize-none"></textarea>
@@ -73,83 +77,134 @@
     </main>
 
     <script>
-        // --- 核心秘钥 ---
+        // --- Supabase 配置 ---
         const SUPABASE_URL = 'https://ylbwdthefpcrocmvccpy.supabase.co';
+        // 注意：这是你的 KEY，不要改动
         const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlsYndkdGhlZnBjcm9jbXZjY3B5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njk3OTk4MDksImV4cCI6MjA4NTM3NTgwOX0.f6_5e1UpdLmZHc2aTwQJMDPTNJxb1ZQqs2OBxCklZJ4';
         
-        let supabase;
-        try {
-            supabase = supabasejs.createClient(SUPABASE_URL, SUPABASE_KEY);
-        } catch(e) { console.error("Supabase Client Error"); }
+        let supabase = null;
+        let tasks = [];
+        let cur = null;
+        let activeTab = 'sop';
 
+        // 你的备份数据
         const backupData = [{"id":1769786819936,"title":"写一篇公众号种草","subtasks":[{"id":1769831964603,"text":"选题","done":false}],"reminderTime":"08:00","sop":""},{"id":1769774974790,"title":"终点系统网页制作","subtasks":[{"id":1769774994705,"text":"建立大纲","done":true},{"id":1769785458872,"text":"加入使用手册","done":true}],"reminderTime":"08:09","sop":"# 协议 v3.0\n\n- 阶段一：建立大纲\n- 阶段二：意志捍卫"}];
 
-        let tasks = JSON.parse(localStorage.getItem('cmd_v5_data')) || backupData;
-        let cur = null, activeTab = 'sop';
-        const manualMD = `# 📘 系统使用手册\n\n1. **创建任务**：点击左侧列表上方的 (+)。\n2. **云同步**：输入密钥并点击“同步”，圆点变绿即成功。\n3. **固定到桌面**：\n   - PC: 浏览器地址栏右侧点击“安装”图标。\n   - 手机: Safari分享 -> 添加到主屏幕。`;
+        const manualMD = `# 📘 故障排查手册\n\n1. **红点问题**：如果输入密钥点击同步后仍是红点，请检查网络是否能访问国外网站。\n2. **离线模式**：即使是红点，你依然可以添加任务，数据会保存在这台电脑上。\n3. **加号在哪**：现在加号被固定在左侧列表上方，它是白色的圆形按钮。`;
 
-        function init() { 
-            lucide.createIcons(); 
-            // 恢复保存的密钥
-            const code = localStorage.getItem('user_sync_code');
-            if(code) { 
-                document.getElementById('sync-code-input').value = code;
-                pull(); 
+        function init() {
+            lucide.createIcons();
+            
+            // 尝试初始化 Supabase
+            try {
+                if(typeof supabasejs !== 'undefined') {
+                    supabase = supabasejs.createClient(SUPABASE_URL, SUPABASE_KEY);
+                    console.log("Supabase 初始化成功");
+                } else {
+                    console.error("Supabase 库加载失败");
+                    document.getElementById('status-msg').innerText = "网络库加载失败";
+                }
+            } catch(e) {
+                console.error("初始化错误:", e);
             }
+
+            // 加载本地数据
+            try {
+                const localData = localStorage.getItem('cmd_v51_data');
+                tasks = localData ? JSON.parse(localData) : backupData;
+                
+                const savedCode = localStorage.getItem('user_sync_code');
+                if(savedCode) {
+                    document.getElementById('sync-code-input').value = savedCode;
+                    // 自动尝试同步
+                    handleSync(); 
+                }
+            } catch(e) {
+                tasks = backupData;
+            }
+
             renderList();
             if(tasks.length > 0) sel(tasks[0].id);
         }
 
-        // 仅保存密钥到本地，防止刷新消失
-        function saveKeyOnly() {
+        // --- 同步核心逻辑 ---
+        async function handleSync() {
             const code = document.getElementById('sync-code-input').value;
+            const statusLabel = document.getElementById('status-msg');
+            
+            if(!code) {
+                alert("请输入同步密钥（任意单词，如 'mykey'）");
+                return;
+            }
+            
             localStorage.setItem('user_sync_code', code);
-        }
+            statusLabel.innerText = "同步中...";
+            
+            if(!supabase) {
+                alert("无法连接云端服务器，请检查网络。");
+                statusLabel.innerText = "连接失败";
+                return;
+            }
 
-        async function pull() {
-            const code = document.getElementById('sync-code-input').value;
-            if(!code || !supabase) return;
             try {
-                const { data } = await supabase.from('tasks_sync').select('data').eq('sync_code', code).maybeSingle();
+                // 1. 先推送到云端
+                const { error: pushError } = await supabase.from('tasks_sync').upsert({ id: code, sync_code: code, data: tasks });
+                if(pushError) throw pushError;
+
+                // 2. 再从云端拉取（以防有新数据）
+                const { data, error: pullError } = await supabase.from('tasks_sync').select('data').eq('sync_code', code).maybeSingle();
+                if(pullError) throw pullError;
+
                 if(data && data.data) {
-                    tasks = data.data;
-                    saveLocal(); renderList(); mark(true);
+                    tasks = data.data; // 更新本地数据
+                    saveLocal();
+                    renderList();
+                    if(cur) sel(cur);
                 }
-            } catch(e) { mark(false); }
-        }
-
-        async function push() {
-            const code = document.getElementById('sync-code-input').value;
-            if(!code || !supabase) return;
-            saveKeyOnly();
-            try {
-                await supabase.from('tasks_sync').upsert({ id: code, sync_code: code, data: tasks });
+                
+                // 成功！
                 mark(true);
-            } catch(e) { mark(false); }
+                statusLabel.innerText = "已同步";
+                
+            } catch(err) {
+                console.error("同步失败:", err);
+                mark(false);
+                statusLabel.innerText = "同步出错";
+                // 即使同步失败，也要保证本地能用，不报错
+            }
         }
 
-        function mark(ok) { document.getElementById('sync-dot').className = `w-2.5 h-2.5 rounded-full ${ok?'bg-green-500 shadow-[0_0_10px_#22C55E]':'bg-red-500'}`; }
-        function saveLocal() { localStorage.setItem('cmd_v5_data', JSON.stringify(tasks)); }
-        async function syncData() { await push(); await pull(); }
+        function mark(ok) { 
+            document.getElementById('sync-dot').className = `w-2.5 h-2.5 rounded-full ${ok?'bg-green-500 shadow-[0_0_10px_#22C55E]':'bg-red-500'}`; 
+        }
 
+        function saveLocal() { 
+            localStorage.setItem('cmd_v51_data', JSON.stringify(tasks)); 
+        }
+
+        // --- 任务操作 ---
         function addTask() {
-            let t = prompt("作战目标:");
+            let t = prompt("输入新任务名称:");
             if(!t) return;
             tasks.unshift({id:Date.now(), title:t, subtasks:[], reminderTime:"", sop:"", done:false});
-            saveAndSync(); renderList(); sel(tasks[0].id);
+            saveLocal(); // 先存本地
+            renderList(); 
+            sel(tasks[0].id);
+            handleSync(); // 尝试后台同步
         }
 
         function renderList() {
             const list = document.getElementById('list');
             list.innerHTML = tasks.map(x => `
-                <div onclick="sel(${x.id})" class="p-3 rounded-xl cursor-pointer border transition-all ${cur===x.id?'border-purple-500 bg-purple-500/10 shadow-lg shadow-purple-500/5':'border-gray-800 hover:border-gray-700'}">
+                <div onclick="sel(${x.id})" class="p-3 rounded-xl cursor-pointer border transition-all ${cur===x.id?'border-purple-500 bg-purple-500/10':'border-gray-800 hover:border-gray-700'}">
                     <div class="flex justify-between text-[10px] mb-2 font-bold uppercase"><span>${x.title}</span><span class="text-purple-500">${prog(x)}%</span></div>
                     <div class="w-full h-[2px] bg-gray-800 rounded-full overflow-hidden"><div class="bg-purple-500 h-full" style="width:${prog(x)}%"></div></div>
                 </div>`).join('');
         }
 
         function sel(id) {
-            cur = id; let x = tasks.find(v => v.id === id);
+            cur = id; 
+            let x = tasks.find(v => v.id === id);
             if(!x) return;
             document.getElementById('title').innerText = x.title;
             document.getElementById('time-input').value = x.reminderTime || "";
@@ -160,15 +215,15 @@
             let i = document.getElementById('sub-in');
             if(!i.value || !cur) return;
             tasks.find(x => x.id === cur).subtasks.push({id:Date.now(), text:i.value, done:false});
-            i.value = ""; saveAndSync(); renderSubs();
+            i.value = ""; 
+            saveLocal(); renderSubs(); handleSync();
         }
 
         function toggle(sid) {
             let x = tasks.find(v => v.id === cur);
             let s = x.subtasks.find(v => v.id === sid);
-            s.done = !s.ok; // 修正逻辑
             s.done = !s.done; 
-            saveAndSync(); renderSubs(); renderList();
+            saveLocal(); renderSubs(); renderList(); handleSync();
         }
 
         function renderSubs() {
@@ -178,7 +233,6 @@
             document.getElementById('prog-text').innerText = prog(x) + '%';
             document.getElementById('subs').innerHTML = x.subtasks.map(s => `
                 <div class="flex items-center gap-3 bg-white/[0.03] p-3 rounded-xl hover:bg-white/[0.06]"><input type="checkbox" ${s.done?'checked':''} onchange="toggle(${s.id})"><span class="text-sm ${s.done?'line-through text-gray-600':''}">${s.text}</span></div>`).join('');
-            lucide.createIcons();
         }
 
         function showTab(type) {
@@ -187,19 +241,20 @@
             const view = document.getElementById('view');
             document.getElementById('tab-sop').className = `text-xs font-bold pb-1 ${type==='sop'?'text-purple-500 border-b-2 border-purple-500':'text-gray-500'}`;
             document.getElementById('tab-manual').className = `text-xs font-bold pb-1 ${type==='manual'?'text-purple-500 border-b-2 border-purple-500':'text-gray-500'}`;
-            view.innerHTML = marked.parse(type==='manual'?manualMD:(x?(x.sop||"_暂无内容_"):"未选择任务"));
+            view.innerHTML = marked.parse(type==='manual'?manualMD:(x?(x.sop||"_暂无 SOP_"):"未选择任务"));
         }
 
         function toggleEdit() {
             let v = document.getElementById('view'), e = document.getElementById('edit'), b = document.getElementById('edit-btn'), x = tasks.find(v => v.id === cur);
             if(!x) return;
             if(e.classList.contains('hidden')){ v.classList.add('hidden'); e.classList.remove('hidden'); b.innerText="保存"; e.value=x.sop; }
-            else { x.sop = e.value; v.innerHTML = marked.parse(e.value); v.classList.remove('hidden'); e.classList.add('hidden'); b.innerText="编辑 SOP"; saveAndSync(); }
+            else { x.sop = e.value; v.innerHTML = marked.parse(e.value); v.classList.remove('hidden'); e.classList.add('hidden'); b.innerText="编辑"; saveLocal(); handleSync(); }
         }
 
         function prog(x) { return x.subtasks && x.subtasks.length ? Math.round(x.subtasks.filter(s=>s.done).length/x.subtasks.length*100) : 0; }
-        function saveAndSync() { saveLocal(); push(); }
-        function updateTime() { tasks.find(v => v.id === cur).reminderTime = document.getElementById('time-input').value; saveAndSync(); }
+        function updateTime() { tasks.find(v => v.id === cur).reminderTime = document.getElementById('time-input').value; saveLocal(); handleSync(); }
+        
+        // 启动！
         window.onload = init;
     </script>
 </body>
