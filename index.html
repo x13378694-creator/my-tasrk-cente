@@ -3,16 +3,16 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>指挥部 v8.0 | 新粗野主义</title>
+    <title>指挥部 v8.1 | 布局微调版</title>
     <style>
         /* --- 0. 新粗野主义核心变量 --- */
         :root {
-            --bg: #f2f2f2;         /* 浅灰背景，突出卡片 */
-            --card-bg: #ffffff;    /* 纯白卡片 */
-            --border: #000000;     /* 纯黑边框 */
-            --border-width: 3px;   /* 粗边框 */
-            --shadow: 5px 5px 0px 0px #000000; /* 硬阴影 */
-            --accent: #000000;     /* 强调色也是黑色 */
+            --bg: #f2f2f2;         
+            --card-bg: #ffffff;    
+            --border: #000000;     
+            --border-width: 3px;   
+            --shadow: 5px 5px 0px 0px #000000; 
+            --accent: #000000;     
             --text: #000000;
         }
 
@@ -21,7 +21,7 @@
         body { 
             background-color: var(--bg); 
             color: var(--text); 
-            font-family: 'Courier New', Courier, monospace, sans-serif; /* 打字机字体更符合粗野风格 */
+            font-family: 'Courier New', Courier, monospace, sans-serif;
             margin: 0; 
             height: 100vh; 
             display: flex; 
@@ -55,8 +55,8 @@
             flex: 1;
             padding: 20px;
             display: grid;
-            grid-template-columns: 300px 1fr; /* 左侧列表固定，右侧详情自适应 */
-            grid-template-rows: 2fr 1fr;      /* 上部分是核心操作，下部分是手册/搬运 */
+            grid-template-columns: 300px 1fr; 
+            grid-template-rows: 2fr 1fr;      
             gap: 20px;
             overflow: hidden;
         }
@@ -78,7 +78,7 @@
 
         /* --- 左侧：任务列表 --- */
         .sidebar {
-            grid-row: 1 / -1; /* 占满左侧全高 */
+            grid-row: 1 / -1; 
         }
         .list-header {
             padding: 15px;
@@ -113,7 +113,9 @@
         /* --- 右侧上部：详情与SOP --- */
         .workspace {
             display: grid;
-            grid-template-columns: 1fr 1fr; /* 左右分栏：左边子任务，右边SOP */
+            grid-template-columns: 1fr 1fr; 
+            /* 【核心修改】这里设置了行高：标题栏自适应，剩下的空间(1fr)强制填满 */
+            grid-template-rows: auto 1fr;   
             gap: 20px;
             overflow: hidden;
         }
@@ -140,6 +142,8 @@
             padding: 15px;
             overflow-y: auto;
             display: flex; flex-direction: column; gap: 10px;
+            /* 确保填满网格单元 */
+            height: 100%; 
         }
 
         .check-row {
@@ -158,12 +162,13 @@
         }
         .check-row.done .check-box { background: #000; }
 
-        /* SOP 区域 (直接展示) */
+        /* SOP 区域 */
         .sop-box {
             border: var(--border-width) solid var(--border);
             box-shadow: var(--shadow);
             background: white;
             display: flex; flex-direction: column;
+            height: 100%; /* 确保填满 */
         }
         .sop-header {
             padding: 10px; background: #000; color: #fff; font-weight: bold; font-size: 14px;
@@ -179,7 +184,7 @@
 
         /* --- 右侧下部：使用手册与搬运 --- */
         .manual-box {
-            grid-column: 1 / -1; /* 跨满整行 */
+            grid-column: 1 / -1;
             background: #fff;
             padding: 15px;
             overflow-y: auto;
@@ -214,7 +219,7 @@
 
     <nav>
         <h1>TASK_COMMANDER</h1>
-        <div style="font-weight:bold;">v8.0 NEO</div>
+        <div style="font-weight:bold;">v8.1 LAYOUT</div>
     </nav>
 
     <main>
@@ -310,7 +315,7 @@
         }
 
         function deleteTask(e, id) {
-            e.stopPropagation(); // 防止触发选择
+            e.stopPropagation();
             if(confirm("确认删除此任务？")) {
                 tasks = tasks.filter(t => t.id !== id);
                 if(tasks.length === 0) addTask();
@@ -349,11 +354,9 @@
             document.getElementById('task-title').value = t.title;
             document.getElementById('task-time').value = t.reminderTime || "";
             
-            // 渲染SOP
             document.getElementById('sop-view').innerText = t.sop || "（点击右上角编辑 SOP 内容）";
             document.getElementById('sop-edit').value = t.sop || "";
 
-            // 渲染子任务
             const subContainer = document.getElementById('subtask-list');
             subContainer.innerHTML = (t.subtasks || []).map((s, idx) => `
                 <div class="check-row ${s.done ? 'done' : ''}" onclick="toggleSub(${idx})">
@@ -362,7 +365,6 @@
                 </div>
             `).join('');
 
-            // 进度
             const total = t.subtasks ? t.subtasks.length : 0;
             const done = t.subtasks ? t.subtasks.filter(s => s.done).length : 0;
             const percent = total === 0 ? 0 : Math.round((done / total) * 100);
@@ -398,13 +400,11 @@
             const t = tasks.find(x => x.id === currentId);
             
             if(edit.style.display === 'block') {
-                // 保存
                 t.sop = edit.value;
                 view.innerText = t.sop;
                 edit.style.display = 'none'; view.style.display = 'block';
                 saveData();
             } else {
-                // 编辑
                 edit.style.display = 'block'; view.style.display = 'none';
                 edit.focus();
             }
