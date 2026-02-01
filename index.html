@@ -3,9 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>指挥部 v8.1 | 布局微调版</title>
+    <title>指挥部 v8.2 | 完美布局版</title>
     <style>
-        /* --- 0. 新粗野主义核心变量 --- */
+        /* --- 0. 核心变量 (Neo-Brutalism) --- */
         :root {
             --bg: #f2f2f2;         
             --card-bg: #ffffff;    
@@ -31,269 +31,254 @@
 
         /* --- 顶栏 --- */
         nav {
-            padding: 15px 20px;
+            padding: 10px 20px;
             background: var(--card-bg);
             border-bottom: var(--border-width) solid var(--border);
-            display: flex; 
-            justify-content: space-between; 
-            align-items: center;
+            display: flex; justify-content: space-between; align-items: center;
+            flex-shrink: 0;
         }
         
         h1 {
-            margin: 0;
-            font-size: 20px;
-            font-weight: 900;
-            text-transform: uppercase;
-            letter-spacing: -1px;
-            background: #000;
-            color: #fff;
-            padding: 5px 10px;
+            margin: 0; font-size: 18px; font-weight: 900; text-transform: uppercase;
+            background: #000; color: #fff; padding: 5px 10px;
         }
 
-        /* --- 主布局 (Bento Grid) --- */
+        /* --- 主布局 (Grid 修正版) --- */
         main {
             flex: 1;
             padding: 20px;
             display: grid;
-            grid-template-columns: 300px 1fr; 
-            grid-template-rows: 2fr 1fr;      
+            /* 左边 300px，右边自适应 */
+            grid-template-columns: 300px 1fr;
+            /* 只有一行，左侧占满；右侧内部再分层 */
+            grid-template-rows: 100%;
             gap: 20px;
             overflow: hidden;
         }
 
-        /* --- 通用卡片样式 (Box) --- */
-        .box {
+        /* --- 左侧侧边栏 --- */
+        .sidebar {
             background: var(--card-bg);
             border: var(--border-width) solid var(--border);
             box-shadow: var(--shadow);
-            display: flex;
-            flex-direction: column;
+            display: flex; flex-direction: column;
             overflow: hidden;
-            transition: transform 0.1s;
-        }
-        .box:active {
-            transform: translate(2px, 2px);
-            box-shadow: 3px 3px 0px 0px #000;
+            height: 100%; /* 强制全高 */
         }
 
-        /* --- 左侧：任务列表 --- */
-        .sidebar {
-            grid-row: 1 / -1; 
+        /* --- 右侧面板容器 (Flex 纵向布局) --- */
+        .right-panel {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            height: 100%;
+            overflow: hidden;
         }
+
+        /* --- 核心工作区 (自动撑满剩余空间) --- */
+        .workspace {
+            flex: 1; /* 关键：占据所有剩余高度 */
+            display: grid;
+            grid-template-columns: 1fr 1fr; /* 左右两栏 */
+            grid-template-rows: auto 1fr;   /* 标题栏高度自适应，内容区撑满 */
+            gap: 20px;
+            overflow: hidden;
+            min-height: 0; /* 防止溢出 */
+        }
+
+        /* --- 底部手册区 (固定高度，内容滚动) --- */
+        .manual-box {
+            height: 180px; /* 固定高度，不抢占空间 */
+            flex-shrink: 0;
+            background: #fff;
+            border: var(--border-width) solid var(--border);
+            box-shadow: var(--shadow);
+            display: flex; flex-direction: column;
+            overflow: hidden;
+        }
+
+        /* --- 组件样式 --- */
         .list-header {
-            padding: 15px;
-            border-bottom: var(--border-width) solid var(--border);
-            background: #eee;
-            font-weight: bold;
+            padding: 15px; border-bottom: 2px solid #000; background: #eee; font-weight: bold;
             display: flex; justify-content: space-between; align-items: center;
         }
         
         .task-item {
-            padding: 15px;
-            border-bottom: 2px solid #000;
-            cursor: pointer;
+            padding: 12px 15px; border-bottom: 2px solid #000; cursor: pointer;
             display: flex; justify-content: space-between; align-items: center;
         }
         .task-item:hover { background: #f9f9f9; }
-        .task-item.active { 
-            background: #000; 
-            color: #fff; 
-        }
-        .task-item.active .del-btn { color: #fff; border-color: #fff; }
+        .task-item.active { background: #000; color: #fff; }
+        .task-item.active .del-btn { border-color: #fff; color: #fff; }
 
         .del-btn {
-            font-size: 12px;
-            padding: 2px 6px;
-            border: 2px solid #000;
-            font-weight: bold;
-            margin-left: 10px;
+            font-size: 10px; padding: 2px 6px; border: 1px solid #000; margin-left: 5px;
+            background: transparent; color: #000;
         }
         .del-btn:hover { background: red; color: white; border-color: red; }
-
-        /* --- 右侧上部：详情与SOP --- */
-        .workspace {
-            display: grid;
-            grid-template-columns: 1fr 1fr; 
-            /* 【核心修改】这里设置了行高：标题栏自适应，剩下的空间(1fr)强制填满 */
-            grid-template-rows: auto 1fr;   
-            gap: 20px;
-            overflow: hidden;
-        }
 
         /* 任务标题栏 */
         .task-header-box {
             grid-column: 1 / -1;
-            padding: 15px;
-            border-bottom: var(--border-width) solid var(--border);
+            padding: 15px; background: #fff;
+            border: var(--border-width) solid var(--border);
+            box-shadow: var(--shadow);
             display: flex; justify-content: space-between; align-items: center;
-            background: #fff;
         }
-        
-        .title-input {
-            font-size: 24px; font-weight: 900; border: none; outline: none; width: 80%;
-            font-family: inherit;
-        }
-        
-        /* 子任务区域 */
+        .title-input { font-size: 20px; font-weight: 900; border: none; outline: none; width: 70%; font-family: inherit; }
+
+        /* 子任务盒子 */
         .subtasks-box {
             border: var(--border-width) solid var(--border);
             box-shadow: var(--shadow);
             background: white;
             padding: 15px;
-            overflow-y: auto;
-            display: flex; flex-direction: column; gap: 10px;
-            /* 确保填满网格单元 */
-            height: 100%; 
+            overflow: hidden; display: flex; flex-direction: column;
         }
 
-        .check-row {
-            display: flex; align-items: center; gap: 10px;
-            padding: 10px; border: 2px solid #000;
-            cursor: pointer;
-            font-weight: bold;
-        }
-        .check-row.done {
-            background: #ddd;
-            text-decoration: line-through;
-            opacity: 0.6;
-        }
-        .check-box {
-            width: 20px; height: 20px; border: 2px solid #000; background: #fff;
-        }
-        .check-row.done .check-box { background: #000; }
-
-        /* SOP 区域 */
+        /* SOP 盒子 */
         .sop-box {
             border: var(--border-width) solid var(--border);
             box-shadow: var(--shadow);
             background: white;
             display: flex; flex-direction: column;
-            height: 100%; /* 确保填满 */
+            overflow: hidden;
         }
-        .sop-header {
-            padding: 10px; background: #000; color: #fff; font-weight: bold; font-size: 14px;
+
+        .box-title { 
+            font-weight: bold; border-bottom: 2px solid #000; padding-bottom: 5px; margin-bottom: 10px; 
             display: flex; justify-content: space-between;
         }
-        .sop-content {
-            flex: 1; padding: 15px; overflow-y: auto; 
-            font-size: 14px; line-height: 1.6; white-space: pre-wrap;
-        }
-        .sop-textarea {
-            flex: 1; padding: 15px; resize: none; border: none; outline: none; font-family: inherit; display: none;
-        }
 
-        /* --- 右侧下部：使用手册与搬运 --- */
-        .manual-box {
-            grid-column: 1 / -1;
-            background: #fff;
-            padding: 15px;
-            overflow-y: auto;
-            border: var(--border-width) solid var(--border);
-            box-shadow: var(--shadow);
+        .check-row {
+            display: flex; align-items: center; gap: 10px; padding: 8px; border: 2px solid #000;
+            margin-bottom: 8px; cursor: pointer;
         }
-        
-        /* 按钮样式 */
+        .check-row.done { background: #ccc; text-decoration: line-through; opacity: 0.6; }
+        .check-box { width: 16px; height: 16px; border: 2px solid #000; background: #fff; flex-shrink: 0; }
+        .check-row.done .check-box { background: #000; }
+
+        /* 输入框与按钮 */
         button {
-            background: #fff; border: 2px solid #000; padding: 8px 16px; 
-            font-weight: 900; cursor: pointer; box-shadow: 2px 2px 0 0 #000;
-            transition: all 0.1s;
+            background: #fff; border: 2px solid #000; padding: 5px 15px; font-weight: 900; 
+            box-shadow: 2px 2px 0 0 #000; cursor: pointer;
         }
-        button:active { transform: translate(2px, 2px); box-shadow: 0 0 0 0 #000; }
+        button:active { transform: translate(1px, 1px); box-shadow: 1px 1px 0 0 #000; }
         button.primary { background: #000; color: #fff; }
+        
+        .input-brutal { border: 2px solid #000; padding: 8px; outline: none; flex: 1; font-family: inherit; }
 
-        /* 输入框 */
-        .input-brutal {
-            border: 2px solid #000; padding: 10px; outline: none; flex: 1; font-family: inherit;
+        /* 手册内容 */
+        .manual-tabs { 
+            display: flex; border-bottom: 2px solid #000; background: #eee;
         }
+        .manual-tab {
+            padding: 8px 15px; cursor: pointer; font-weight: bold; font-size: 12px; border-right: 2px solid #000;
+        }
+        .manual-tab.active { background: #fff; border-bottom: 2px solid #fff; margin-bottom: -2px; }
+        
+        .manual-content { padding: 15px; overflow-y: auto; font-size: 12px; line-height: 1.8; flex: 1; }
 
         /* 手机适配 */
         @media (max-width: 768px) {
-            main { grid-template-columns: 1fr; grid-template-rows: auto; display: flex; flex-direction: column; overflow-y: auto; }
+            main { grid-template-columns: 1fr; padding: 10px; gap: 10px; display: flex; flex-direction: column; }
             .sidebar { height: 200px; flex-shrink: 0; }
-            .workspace { grid-template-columns: 1fr; display: flex; flex-direction: column; height: auto; }
+            .right-panel { flex: 1; overflow-y: auto; }
+            .workspace { display: flex; flex-direction: column; height: auto; flex: none; }
             .subtasks-box, .sop-box { height: 300px; flex-shrink: 0; }
+            .manual-box { height: auto; flex-shrink: 0; }
         }
     </style>
 </head>
 <body>
 
     <nav>
-        <h1>TASK_COMMANDER</h1>
-        <div style="font-weight:bold;">v8.1 LAYOUT</div>
+        <h1>TASK_HQ_V8.2</h1>
+        <div style="font-size:12px; font-weight:bold;">完美布局版</div>
     </nav>
 
     <main>
-        <section class="box sidebar">
+        <aside class="sidebar">
             <div class="list-header">
-                任务列表
+                MISSION LIST
                 <button onclick="addTask()">＋ 新建</button>
             </div>
             <div id="list-container" style="flex:1; overflow-y:auto;"></div>
-        </section>
+        </aside>
 
-        <div class="workspace">
+        <div class="right-panel">
             
-            <div class="task-header-box">
-                <input type="text" id="task-title" class="title-input" onchange="updateTask('title', this.value)">
-                <div style="display:flex; align-items:center; gap:10px;">
-                    <span id="progress-text" style="font-size:30px; font-weight:900; opacity:0.2;">0%</span>
-                    <input type="time" id="task-time" onchange="updateTask('time', this.value)" style="border:2px solid #000; padding:5px;">
+            <div class="workspace">
+                <div class="task-header-box">
+                    <input type="text" id="task-title" class="title-input" onchange="updateTask('title', this.value)">
+                    <div style="display:flex; align-items:center; gap:10px;">
+                        <span id="progress-text" style="font-size:24px; font-weight:900; opacity:0.3;">0%</span>
+                    </div>
+                </div>
+
+                <div class="subtasks-box">
+                    <div class="box-title">执行步骤 (Checklist)</div>
+                    <div id="subtask-list" style="flex:1; overflow-y:auto; padding-right:5px;"></div>
+                    <div style="display:flex; gap:10px; margin-top:10px;">
+                        <input type="text" id="new-sub-input" class="input-brutal" placeholder="下一步...">
+                        <button class="primary" onclick="addSubTask()">添加</button>
+                    </div>
+                </div>
+
+                <div class="sop-box">
+                    <div class="box-title">
+                        SOP 作战手册
+                        <span onclick="toggleSopEdit()" style="cursor:pointer; font-size:10px; text-decoration:underline;">[编辑/保存]</span>
+                    </div>
+                    <div id="sop-view" style="flex:1; overflow-y:auto; font-size:13px; white-space:pre-wrap; padding-right:5px;"></div>
+                    <textarea id="sop-edit" style="flex:1; padding:10px; resize:none; border:none; outline:none; display:none; font-family:monospace;"></textarea>
                 </div>
             </div>
 
-            <div class="subtasks-box">
-                <div style="font-weight:bold; margin-bottom:10px; border-bottom:2px solid #000; padding-bottom:5px;">执行步骤</div>
-                <div id="subtask-list" style="flex:1; overflow-y:auto;"></div>
-                
-                <div style="display:flex; gap:10px; margin-top:10px;">
-                    <input type="text" id="new-sub-input" class="input-brutal" placeholder="输入下一步...">
-                    <button class="primary" onclick="addSubTask()">添加</button>
+            <div class="manual-box">
+                <div class="manual-tabs">
+                    <div class="manual-tab active" onclick="switchManual('guide')" id="tab-guide">📘 系统使用说明书</div>
+                    <div class="manual-tab" onclick="switchManual('sync')" id="tab-sync">🔄 数据搬运(同步)</div>
                 </div>
-            </div>
 
-            <div class="sop-box">
-                <div class="sop-header">
-                    <span>SOP 作战手册</span>
-                    <span onclick="toggleSopEdit()" style="cursor:pointer; text-decoration:underline;">[编辑/保存]</span>
+                <div id="content-guide" class="manual-content">
+                    <strong>一、 电脑端与手机端使用</strong><br>
+                    1. <strong>固定到桌面</strong>：在浏览器设置中点击“安装应用”或“添加到主屏幕”，即可像 App 一样全屏运行。<br>
+                    2. <strong>布局适应</strong>：电脑端左右分栏，手机端上下排列，自动适应屏幕。<br>
+                    <br>
+                    <strong>二、 按钮功能详解</strong><br>
+                    1. <strong>[＋新建]</strong>：位于左侧列表顶部。点击创建一个空白任务。<br>
+                    2. <strong>[删]</strong>：位于任务名称右侧。点击直接删除该任务（不可恢复，请小心）。<br>
+                    3. <strong>[添加]</strong>：位于中间下方。输入文字后点击，增加一条执行步骤。<br>
+                    4. <strong>[编辑/保存]</strong>：位于 SOP 区域右上角。点击切换编辑模式，粘贴或修改攻略。<br>
+                    <br>
+                    <strong>三、 常见问题</strong><br>
+                    - <strong>数据去哪了？</strong> 所有数据实时保存在你当前的浏览器中。只要不清除浏览器缓存，数据永久有效。<br>
+                    - <strong>如何同步？</strong> 点击上方的“数据搬运(同步)”标签，使用复制粘贴法传输数据。
                 </div>
-                <div id="sop-view" class="sop-content"></div>
-                <textarea id="sop-edit" class="sop-textarea" placeholder="在此输入 SOP 流程..."></textarea>
+
+                <div id="content-sync" class="manual-content" style="display:none; gap:10px;">
+                    <p style="margin:0 0 5px 0;">将下方代码复制发给手机，或将手机代码粘贴至此点击导入。</p>
+                    <textarea id="data-area" class="input-brutal" style="height:50px; font-size:10px;"></textarea>
+                    <div style="display:flex; gap:10px; margin-top:5px;">
+                        <button onclick="copyData()">1. 复制导出</button>
+                        <button class="primary" onclick="importData()">2. 粘贴导入</button>
+                    </div>
+                </div>
             </div>
 
         </div>
-
-        <section class="manual-box">
-            <div style="display:flex; gap:10px; border-bottom:2px solid #000; padding-bottom:10px; margin-bottom:10px;">
-                <button onclick="showManual('manual')">系统手册</button>
-                <button onclick="showManual('data')">数据搬运(同步)</button>
-            </div>
-            
-            <div id="manual-content">
-                <strong>1. 界面介绍：</strong> 左侧选任务，右侧直接操作。SOP 区域常驻显示，方便对照执行。<br>
-                <strong>2. 删除任务：</strong> 点击任务列表右侧的 [删] 按钮即可移除。<br>
-                <strong>3. 自动保存：</strong> 所有操作即刻存入本地，无需手动保存。
-            </div>
-
-            <div id="data-content" style="display:none; flex-direction:column; gap:10px;">
-                <p>将下方代码复制发给手机，或将手机代码粘贴至此。</p>
-                <textarea id="data-area" class="input-brutal" style="height:60px; font-size:10px;"></textarea>
-                <div style="display:flex; gap:10px;">
-                    <button onclick="copyData()">复制数据 (导出)</button>
-                    <button class="primary" onclick="importData()">粘贴数据 (导入)</button>
-                </div>
-            </div>
-        </section>
     </main>
 
     <script>
-        // --- 数据硬植入 (确保你的数据不丢) ---
+        // --- 你的原始数据 ---
         const HARD_DATA = [{"id":1769856578154,"title":"dankoe的在一天内彻底改变人生到底有多强大","subtasks":[],"reminderTime":"","sop":""},{"id":1769855581999,"title":"做一个每日提醒dankoe写的问题提醒","subtasks":[],"reminderTime":"","sop":""},{"id":1769850813071,"title":"换推特号，写一篇关于煜子显化文章","subtasks":[],"reminderTime":"","sop":""},{"id":1769786819936,"title":"写一篇公众号种草","subtasks":[{"text":"选题","done":false},{"text":"选题：为什么说，ai时代我们的优势更多了？","done":false}],"reminderTime":"08:00","sop":""},{"id":1769774974790,"title":"终点系统网页制作","subtasks":[{"text":"建立大纲","done":true},{"text":"坚定自己的想法...","done":true},{"text":"分享给朋友...","done":true},{"text":"学会如何在github里面做网址","done":true},{"text":"加入使用手册","done":true}],"reminderTime":"08:09","sop":"# 🎖️ 全能开发者协议 (v3.0)\n\n## 阶段一：建立大纲\n- 硬性要求：严禁直接让 AI 开工。\n..."}];
 
         let tasks = [];
         let currentId = null;
 
         window.onload = function() {
-            const local = localStorage.getItem('cmd_v8_data');
+            const local = localStorage.getItem('cmd_v82_data');
             if(local && local.length > 20) {
                 try { tasks = JSON.parse(local); } catch(e) { tasks = HARD_DATA; }
             } else {
@@ -304,7 +289,7 @@
         };
 
         function saveData() {
-            localStorage.setItem('cmd_v8_data', JSON.stringify(tasks));
+            localStorage.setItem('cmd_v82_data', JSON.stringify(tasks));
             document.getElementById('data-area').value = JSON.stringify(tasks);
         }
 
@@ -338,7 +323,7 @@
                 
                 return `
                 <div class="task-item ${t.id === currentId ? 'active' : ''}" onclick="selectTask(${t.id})">
-                    <div style="flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">
+                    <div style="flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; padding-right:10px;">
                         ${t.title}
                     </div>
                     <div style="font-size:12px; font-weight:bold;">${percent}%</div>
@@ -352,19 +337,21 @@
             if(!t) return;
 
             document.getElementById('task-title').value = t.title;
-            document.getElementById('task-time').value = t.reminderTime || "";
             
-            document.getElementById('sop-view').innerText = t.sop || "（点击右上角编辑 SOP 内容）";
+            // SOP
+            document.getElementById('sop-view').innerText = t.sop || "（点击右上角 [编辑/保存] 添加内容）";
             document.getElementById('sop-edit').value = t.sop || "";
 
+            // 子任务
             const subContainer = document.getElementById('subtask-list');
             subContainer.innerHTML = (t.subtasks || []).map((s, idx) => `
                 <div class="check-row ${s.done ? 'done' : ''}" onclick="toggleSub(${idx})">
-                    <div class="check-box"></div>
-                    <span>${s.text}</span>
+                    <div class="check-box">${s.done ? '✓' : ''}</div>
+                    <span style="flex:1;">${s.text}</span>
                 </div>
             `).join('');
 
+            // 进度
             const total = t.subtasks ? t.subtasks.length : 0;
             const done = t.subtasks ? t.subtasks.filter(s => s.done).length : 0;
             const percent = total === 0 ? 0 : Math.round((done / total) * 100);
@@ -374,7 +361,6 @@
         function updateTask(field, value) {
             const t = tasks.find(x => x.id === currentId);
             if(field === 'title') { t.title = value; renderList(); }
-            if(field === 'time') t.reminderTime = value;
             saveData();
         }
 
@@ -410,10 +396,12 @@
             }
         }
 
-        function showManual(type) {
-            document.getElementById('manual-content').style.display = type === 'manual' ? 'block' : 'none';
-            document.getElementById('data-content').style.display = type === 'data' ? 'flex' : 'none';
-            if(type === 'data') document.getElementById('data-area').value = JSON.stringify(tasks);
+        function switchManual(type) {
+            document.getElementById('content-guide').style.display = type === 'guide' ? 'block' : 'none';
+            document.getElementById('content-sync').style.display = type === 'sync' ? 'flex' : 'none';
+            document.getElementById('tab-guide').className = type === 'guide' ? 'manual-tab active' : 'manual-tab';
+            document.getElementById('tab-sync').className = type === 'sync' ? 'manual-tab active' : 'manual-tab';
+            if(type === 'sync') document.getElementById('data-area').value = JSON.stringify(tasks);
         }
 
         function copyData() {
