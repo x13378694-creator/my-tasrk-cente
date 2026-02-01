@@ -3,15 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>指挥部 v6.0 | 国内特供版</title>
+    <title>指挥部 v6.1 | 数据硬核注入版</title>
     <script src="https://cdn.staticfile.org/tailwindcss/3.3.5/tailwind.min.js"></script>
     <script src="https://cdn.staticfile.org/marked/9.1.2/marked.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     
     <style>
         body { background-color: #0D0D0D; color: #F3F4F6; height: 100vh; overflow: hidden; font-family: sans-serif; }
         .bento-card { background: #1A1A1A; border: 1px solid #2D2D2D; transition: all 0.3s ease; }
-        /* 纯CSS实现的加号，不依赖图标库，绝对显示 */
         .add-icon { 
             width: 24px; height: 24px; border-radius: 50%; background: #333; color: #A855F7; 
             display: flex; align-items: center; justify-content: center; font-weight: bold; cursor: pointer;
@@ -19,7 +17,6 @@
         .add-icon:hover { background: #A855F7; color: white; }
         .tab-active { color: #A855F7; border-bottom: 2px solid #A855F7; }
         .tab-inactive { color: #666; }
-        /* 滚动条 */
         ::-webkit-scrollbar { width: 4px; }
         ::-webkit-scrollbar-thumb { background: #333; border-radius: 10px; }
     </style>
@@ -28,13 +25,9 @@
 
     <nav class="p-3 border-b border-gray-800 flex justify-between items-center bg-[#111] z-50">
         <div class="flex items-center gap-2">
-            <h1 class="text-xs font-black tracking-widest text-purple-500">TASK_HQ_CN</h1>
-            <div id="status-dot" class="w-2 h-2 rounded-full bg-gray-500"></div>
+            <h1 class="text-xs font-black tracking-widest text-purple-500">TASK_HQ_6.1</h1>
         </div>
-        <div class="flex gap-2">
-            <input id="sync-key" type="password" placeholder="密钥" class="bg-black text-[10px] border border-gray-800 rounded px-2 w-20 text-purple-400 outline-none">
-            <button onclick="autoSync()" class="bg-purple-900/30 text-purple-400 text-[10px] px-2 py-1 rounded border border-purple-500/30">同步</button>
-        </div>
+        <div class="text-[10px] text-gray-500">离线模式</div>
     </nav>
 
     <main class="flex-1 flex flex-col md:flex-row p-2 gap-2 overflow-hidden">
@@ -73,64 +66,56 @@
             <div class="bento-card rounded-xl p-3 h-1/3 flex flex-col">
                 <div class="flex gap-4 border-b border-gray-800 pb-2 mb-2 text-[10px] font-bold">
                     <button onclick="setTab('sop')" id="btn-sop" class="tab-active">SOP 攻略</button>
-                    <button onclick="setTab('transfer')" id="btn-transfer" class="tab-inactive">数据搬运(人工)</button>
                     <button onclick="saveSop()" class="ml-auto text-purple-400">保存内容</button>
                 </div>
                 
-                <textarea id="sop-area" class="flex-1 bg-transparent text-xs text-gray-400 resize-none outline-none hidden"></textarea>
+                <textarea id="sop-area" class="flex-1 bg-transparent text-xs text-gray-400 resize-none outline-none"></textarea>
                 
-                <div id="transfer-area" class="flex-1 flex flex-col gap-2 hidden">
-                    <p class="text-[10px] text-gray-500">如果同步失败，请复制下方代码发送到手机粘贴。</p>
-                    <textarea id="export-box" class="flex-1 bg-black text-[10px] text-green-500 p-2 rounded resize-none"></textarea>
-                    <div class="flex gap-2">
-                        <button onclick="copyData()" class="flex-1 bg-gray-800 text-white text-[10px] py-1 rounded">1. 复制所有数据</button>
-                        <button onclick="importData()" class="flex-1 bg-purple-900 text-white text-[10px] py-1 rounded">2. 粘贴并导入</button>
-                    </div>
+                <div class="mt-2 flex justify-end">
+                    <button onclick="forceRestore()" class="text-[10px] bg-red-900/30 text-red-500 px-3 py-1 rounded border border-red-500/30 hover:bg-red-900/50">
+                        🆘 点此找回我的 5 条数据
+                    </button>
                 </div>
             </div>
         </section>
     </main>
 
     <script>
-        // --- 核心配置 ---
-        const SUPABASE_URL = 'https://ylbwdthefpcrocmvccpy.supabase.co';
-        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlsYndkdGhlZnBjcm9jbXZjY3B5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njk3OTk4MDksImV4cCI6MjA4NTM3NTgwOX0.f6_5e1UpdLmZHc2aTwQJMDPTNJxb1ZQqs2OBxCklZJ4';
-        
+        // 你的原始数据，已硬编码在此
+        const MY_DATA = [{"id":1769856578154,"title":"dankoe的在一天内彻底改变人生到底有多强大","subtasks":[],"reminderTime":"","lastReminderDate":"","sop":"","reflection":"","completed":false},{"id":1769855581999,"title":"做一个每日提醒dankoe写的问题提醒，并且有心得体会回答的那种，每天都可以","subtasks":[],"reminderTime":"","lastReminderDate":"","sop":"","reflection":"","completed":false},{"id":1769850813071,"title":"换推特号，写一篇关于煜子显化和dan改变一天的相联系的文章，发表到推特，小红书，微信公众号，微信公众号带广告","subtasks":[],"reminderTime":"","lastReminderDate":"","sop":"","reflection":"","completed":false},{"id":1769786819936,"title":"写一篇公众号种草，话题忘记了","subtasks":[{"id":1769831964603,"text":"选题","done":false},{"id":1769844089144,"text":"选题：为什么说，ai时代我们的优势更多了？为什么说，不用担心ai替代我们？ai时代，我们就是会被替代的？","done":false}],"reminderTime":"08:00","lastReminderDate":"","sop":"","reflection":"","completed":false},{"id":1769774974790,"title":"终点系统网页制作","subtasks":[{"id":1769774994705,"text":"建立大纲","done":true},{"id":1769780006388,"text":"坚定自己的想法，任务内容必须要全，一定要每条强调自己的想法，不要被ai所带跑，不要让ai省劲。","done":true},{"id":1769780063553,"text":"分享给朋友，让他们体验并且反馈继续改进，不要忘记自己想法","done":true},{"id":1769785151601,"text":"学会如何在github里面做网址","done":true},{"id":1769785458872,"text":"加入使用手册","done":true}],"reminderTime":"08:09","lastReminderDate":"","sop":"# 🎖️ 全能开发者：项目全生命周期作战协议 (v3.0)\n\n## 阶段一：建立大纲 (The Skeleton)\n- **硬性要求**：严禁直接让 AI 开工。必须先手动敲定 1, 2, 3 级功能大纲。\n- **目标**：在 AI 介入前，逻辑阵地必须由你百分之百占领。\n\n## 阶段二：意志捍卫与反 AI 简化 (Integrity Guard) 🛡️\n- **作战准则**：\n    1. **全量扫描**：每一条原始想法必须在代码中体现，AI 漏掉一条，立刻命令重写。\n    2. **拒绝偷懒**：看到 `// code remains the same` 或省略号，视为 AI 违规，强制要求全量输出。\n    3. **主权声明**：在 Prompt 中明确“我是架构师，你只是执行器”。\n\n## 阶段三：社交验证与反馈吸收 (Social Testing)\n- **动作**：将原型发给朋友体验。\n- **反馈处理**：记录所有反馈，但只采纳“不违背初衷”的建议。记住：你是产品的灵魂。\n\n## 阶段四：GitHub Pages 自动化部署 (Deployment) 🌐\n- **流程**：新建 Repo -> 上传 `index.html` -> Settings 开启 Pages -> 获得全球唯一域名。\n- **标准**：部署后，必须在手机 Safari 下测试“添加到主屏幕”的兼容性。\n\n## 阶段五：交付件：编写使用手册 (User Manual) 📘\n- **核心任务**：为你开发的这个新工具写一份“白痴级”使用指南。\n- **必须包含**：\n    1. **核心功能说明**：这个工具是干什么的？\n    2. **环境依赖**：需要什么浏览器？是否需要授权通知？\n    3. **操作流程**：第一步点哪里，第二步怎么做。\n    4. **故障排除**：如果没反应，应该检查哪里（如权限、缓存等）。\n- **意义**：手册是防止用户“误读”你作品的最后一道防线。","reflection":"","completed":false}];
+
         let tasks = [];
         let curId = null;
-        let supabase = null;
 
-        // 初始化
         window.onload = function() {
-            // 1. 尝试加载之前的数据 (v6兼容旧数据)
-            const oldData = localStorage.getItem('cmd_v52_data') || localStorage.getItem('cmd_v5_data') || localStorage.getItem('commander_v4_tasks');
+            // 尝试加载本地，如果没有则使用硬编码数据
+            const oldData = localStorage.getItem('cmd_v61_data');
             if (oldData) {
-                try { tasks = JSON.parse(oldData); } catch(e) { console.log('数据解析失败'); }
+                try { tasks = JSON.parse(oldData); } catch(e) { tasks = MY_DATA; }
+            } else {
+                tasks = MY_DATA; // 默认加载你的数据
             }
-            if (tasks.length === 0) tasks = [{id: 1, title: "欢迎回来", subs: [], sop: "点击下方'数据搬运'可导出备份。", reminderTime: ""}];
-
-            // 2. 恢复密钥
-            const key = localStorage.getItem('sync_key');
-            if (key) document.getElementById('sync-key').value = key;
-
-            // 3. 初始化 Supabase (如果加载成功)
-            if (typeof supabasejs !== 'undefined') {
-                try {
-                    supabase = supabasejs.createClient(SUPABASE_URL, SUPABASE_KEY);
-                    document.getElementById('status-dot').className = "w-2 h-2 rounded-full bg-yellow-500"; // 黄色代表待机
-                } catch(e) { console.log('云端组件加载失败'); }
-            }
+            
+            // 确保有数据
+            if (tasks.length === 0) tasks = MY_DATA;
 
             renderList();
             if (tasks.length > 0) selectTask(tasks[0].id);
-            setTab('sop');
         };
 
-        // --- 核心逻辑 ---
+        // 强制恢复数据
+        function forceRestore() {
+            if(confirm("确定要重新加载你的5条原始数据吗？这将覆盖当前变动。")) {
+                tasks = MY_DATA;
+                saveData();
+                renderList();
+                selectTask(tasks[0].id);
+                alert("数据已复活！");
+            }
+        }
+
         function saveData() {
-            localStorage.setItem('cmd_v6_data', JSON.stringify(tasks));
-            // 实时更新导出框
-            document.getElementById('export-box').value = JSON.stringify(tasks);
+            localStorage.setItem('cmd_v61_data', JSON.stringify(tasks));
         }
 
         function addTask() {
@@ -140,7 +125,6 @@
             tasks.unshift({id: newId, title: t, subs: [], sop: "", reminderTime: ""});
             selectTask(newId);
             saveData(); renderList();
-            autoSync(); // 尝试同步
         }
 
         function renderList() {
@@ -150,7 +134,7 @@
                 return `
                 <div onclick="selectTask(${t.id})" class="p-2 mb-2 rounded border cursor-pointer ${t.id === curId ? 'bg-purple-900/20 border-purple-500' : 'border-gray-800 hover:bg-gray-800'}">
                     <div class="flex justify-between text-[10px] mb-1 text-gray-300">
-                        <span class="font-bold">${t.title}</span>
+                        <span class="font-bold truncate pr-2">${t.title}</span>
                         <span class="${prog===100?'text-green-500':'text-purple-500'}">${prog}%</span>
                     </div>
                     <div class="w-full h-[2px] bg-gray-800 rounded overflow-hidden">
@@ -199,7 +183,7 @@
         function toggleSub(idx) {
             const t = tasks.find(x => x.id === curId);
             t.subs[idx].done = !t.subs[idx].done;
-            saveData(); renderSubs(); renderList(); autoSync();
+            saveData(); renderSubs(); renderList();
         }
 
         function updateTitle() {
@@ -209,70 +193,17 @@
 
         function saveSop() {
             tasks.find(x => x.id === curId).sop = document.getElementById('sop-area').value;
-            saveData(); alert("SOP 已保存"); autoSync();
+            saveData(); alert("SOP 已保存");
         }
 
         function calcProg(t) {
-            if (!t.subs || t.subs.length === 0) return 0;
-            return Math.round(t.subs.filter(s => s.done).length / t.subs.length * 100);
+            if (!t.subtasks && !t.subs) return 0;
+            const s = t.subtasks || t.subs;
+            if (s.length === 0) return 0;
+            return Math.round(s.filter(i => i.done).length / s.length * 100);
         }
 
-        // --- 搬运与同步 ---
-        function setTab(tab) {
-            document.getElementById('sop-area').style.display = tab === 'sop' ? 'block' : 'none';
-            document.getElementById('transfer-area').style.display = tab === 'transfer' ? 'flex' : 'none';
-            
-            document.getElementById('btn-sop').className = tab === 'sop' ? 'tab-active' : 'tab-inactive';
-            document.getElementById('btn-transfer').className = tab === 'transfer' ? 'tab-active' : 'tab-inactive';
-            
-            if (tab === 'transfer') document.getElementById('export-box').value = JSON.stringify(tasks);
-        }
-
-        function copyData() {
-            document.getElementById('export-box').select();
-            document.execCommand('copy');
-            alert("数据已复制！请发送给手机，在手机端粘贴并点击导入。");
-        }
-
-        function importData() {
-            try {
-                const val = document.getElementById('export-box').value;
-                if (!val) return;
-                const imported = JSON.parse(val);
-                if (confirm("确定要覆盖当前数据吗？")) {
-                    tasks = imported;
-                    saveData(); renderList(); selectTask(tasks[0].id);
-                    alert("导入成功！");
-                }
-            } catch(e) { alert("数据格式错误，请确保复制的是完整的JSON代码"); }
-        }
-
-        async function autoSync() {
-            const key = document.getElementById('sync-key').value;
-            if (!key || !supabase) return;
-            
-            localStorage.setItem('sync_key', key);
-            document.getElementById('status-dot').className = "w-2 h-2 rounded-full bg-yellow-500 animate-pulse";
-            
-            try {
-                // 1. 推送
-                const { error } = await supabase.from('tasks_sync').upsert({ id: key, sync_code: key, data: tasks });
-                if (error) throw error;
-                
-                // 2. 拉取（为了获取最新）
-                const { data } = await supabase.from('tasks_sync').select('data').eq('sync_code', key).single();
-                if (data && data.data) {
-                    // 简单的合并逻辑：如果云端任务更多，就用云端的（防止覆盖手机上的修改）
-                    // 这里简化为：直接读取云端作为最新状态
-                    // tasks = data.data; 
-                    // saveData(); renderList();
-                }
-                document.getElementById('status-dot').className = "w-2 h-2 rounded-full bg-green-500 shadow-[0_0_8px_#22C55E]";
-            } catch(e) {
-                console.log("同步失败，网络受阻");
-                document.getElementById('status-dot').className = "w-2 h-2 rounded-full bg-red-500";
-            }
-        }
+        function setTab(t) { /* 占位，保持精简 */ }
     </script>
 </body>
 </html>
