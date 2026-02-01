@@ -3,207 +3,336 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>指挥部 v6.1 | 数据硬核注入版</title>
-    <script src="https://cdn.staticfile.org/tailwindcss/3.3.5/tailwind.min.js"></script>
-    <script src="https://cdn.staticfile.org/marked/9.1.2/marked.min.js"></script>
-    
+    <title>指挥部 v7.0 | 独立碉堡版</title>
     <style>
-        body { background-color: #0D0D0D; color: #F3F4F6; height: 100vh; overflow: hidden; font-family: sans-serif; }
-        .bento-card { background: #1A1A1A; border: 1px solid #2D2D2D; transition: all 0.3s ease; }
-        .add-icon { 
-            width: 24px; height: 24px; border-radius: 50%; background: #333; color: #A855F7; 
-            display: flex; align-items: center; justify-content: center; font-weight: bold; cursor: pointer;
+        /* --- 0. 核心样式 (手写，不依赖任何外部网站) --- */
+        :root {
+            --bg: #0f0f13;
+            --panel: #1a1a20;
+            --border: #2d2d35;
+            --accent: #8b5cf6; /* 紫色 */
+            --text-main: #e2e8f0;
+            --text-sub: #94a3b8;
         }
-        .add-icon:hover { background: #A855F7; color: white; }
-        .tab-active { color: #A855F7; border-bottom: 2px solid #A855F7; }
-        .tab-inactive { color: #666; }
-        ::-webkit-scrollbar { width: 4px; }
-        ::-webkit-scrollbar-thumb { background: #333; border-radius: 10px; }
+        * { box-sizing: border-box; }
+        body { 
+            background-color: var(--bg); color: var(--text-main); 
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            margin: 0; height: 100vh; display: flex; flex-direction: column; overflow: hidden;
+        }
+        
+        /* 布局容器 */
+        nav { 
+            height: 50px; background: rgba(0,0,0,0.5); border-bottom: 1px solid var(--border); 
+            display: flex; align-items: center; justify-content: space-between; padding: 0 15px;
+            backdrop-filter: blur(10px);
+        }
+        main { flex: 1; display: flex; padding: 10px; gap: 10px; overflow: hidden; }
+        
+        /* 卡片样式 */
+        .card { 
+            background: var(--panel); border: 1px solid var(--border); border-radius: 12px; 
+            display: flex; flex-direction: column; overflow: hidden;
+        }
+        
+        /* 左侧列表 */
+        .sidebar { width: 300px; min-width: 250px; }
+        .mobile-only { display: none; }
+        
+        /* 列表项 */
+        .task-item {
+            padding: 12px; margin-bottom: 8px; border: 1px solid transparent; border-radius: 8px;
+            cursor: pointer; transition: all 0.2s; background: rgba(255,255,255,0.02);
+        }
+        .task-item:hover { background: rgba(255,255,255,0.05); }
+        .task-item.active { 
+            border-color: var(--accent); background: rgba(139, 92, 246, 0.1); 
+        }
+        .task-header { display: flex; justify-content: space-between; font-size: 14px; font-weight: bold; margin-bottom: 5px; }
+        .progress-track { height: 3px; background: #333; border-radius: 2px; overflow: hidden; }
+        .progress-fill { height: 100%; background: var(--accent); transition: width 0.3s; }
+
+        /* 右侧详情 */
+        .detail { flex: 1; gap: 10px; }
+        .detail-top { flex: 2; padding: 20px; position: relative; }
+        .detail-bottom { flex: 1; padding: 15px; }
+
+        /* 输入框与按钮 */
+        input, textarea {
+            background: rgba(0,0,0,0.3); border: 1px solid var(--border); color: white;
+            padding: 8px 12px; border-radius: 6px; outline: none; font-size: 14px;
+        }
+        input:focus, textarea:focus { border-color: var(--accent); }
+        
+        button {
+            background: var(--accent); color: white; border: none; padding: 8px 16px;
+            border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 12px;
+        }
+        button:hover { opacity: 0.9; }
+        button.secondary { background: #333; color: #ccc; }
+
+        /* 加号按钮 */
+        .add-btn {
+            width: 30px; height: 30px; border-radius: 50%; background: rgba(255,255,255,0.1);
+            color: var(--accent); display: flex; align-items: center; justify-content: center;
+            font-size: 20px; font-weight: bold; cursor: pointer; transition: 0.2s;
+        }
+        .add-btn:hover { background: var(--accent); color: white; transform: scale(1.1); }
+
+        /* 滚动条 */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-thumb { background: #444; border-radius: 3px; }
+
+        /* 响应式：手机端适配 */
+        @media (max-width: 768px) {
+            main { flex-direction: column; }
+            .sidebar { width: 100%; height: 40%; }
+            .detail { height: 60%; }
+        }
+        
+        /* 实用类 */
+        .title-input { font-size: 18px; font-weight: bold; background: transparent; border: none; width: 100%; padding: 0; }
+        .subtask-row { display: flex; align-items: center; gap: 10px; padding: 8px; border-radius: 6px; cursor: pointer; }
+        .subtask-row:hover { background: rgba(255,255,255,0.05); }
+        .check-box { 
+            width: 16px; height: 16px; border: 2px solid #666; border-radius: 4px; 
+            display: flex; align-items: center; justify-content: center;
+        }
+        .checked .check-box { background: var(--accent); border-color: var(--accent); }
+        .checked span { text-decoration: line-through; color: #666; }
+        
+        .tab-btn { background: transparent; color: #666; padding: 0 10px 5px 10px; border-radius: 0; }
+        .tab-btn.active { color: var(--accent); border-bottom: 2px solid var(--accent); }
     </style>
 </head>
-<body class="flex flex-col">
+<body>
 
-    <nav class="p-3 border-b border-gray-800 flex justify-between items-center bg-[#111] z-50">
-        <div class="flex items-center gap-2">
-            <h1 class="text-xs font-black tracking-widest text-purple-500">TASK_HQ_6.1</h1>
+    <nav>
+        <div style="display:flex; align-items:center; gap:10px;">
+            <div style="width:10px; height:10px; background:var(--accent); border-radius:50%;"></div>
+            <span style="font-weight:900; letter-spacing:1px; font-size:14px;">COMMAND_CENTER_V7</span>
         </div>
-        <div class="text-[10px] text-gray-500">离线模式</div>
+        <div style="font-size:12px; color:#666;">离线·安全模式</div>
     </nav>
 
-    <main class="flex-1 flex flex-col md:flex-row p-2 gap-2 overflow-hidden">
-        <section class="w-full md:w-1/3 bento-card rounded-xl p-3 flex flex-col overflow-hidden">
-            <div class="flex justify-between items-center mb-3 border-b border-gray-800 pb-2">
-                <span class="text-[10px] font-bold text-gray-500">任务列表</span>
-                <div onclick="addTask()" class="add-icon" title="新建任务">＋</div>
+    <main>
+        <section class="card sidebar">
+            <div style="padding:15px; border-bottom:1px solid var(--border); display:flex; justify-content:space-between; align-items:center;">
+                <span style="font-size:12px; font-weight:bold; color:#888;">MISSION LIST</span>
+                <div class="add-btn" onclick="addTask()">+</div>
             </div>
-            <div id="list" class="flex-1 overflow-y-auto space-y-2"></div>
+            <div id="list-container" style="flex:1; overflow-y:auto; padding:10px;"></div>
         </section>
 
-        <section class="flex-1 flex flex-col gap-2 overflow-hidden">
-            <div class="bento-card rounded-xl p-4 flex-1 flex flex-col relative">
-                <div class="flex justify-between items-start mb-2">
-                    <input type="text" id="task-title" onchange="updateTitle()" class="bg-transparent text-xl font-bold text-white outline-none w-full" placeholder="选择任务...">
-                    <span id="prog-num" class="text-2xl font-black text-purple-500 opacity-20">0%</span>
+        <section class="detail">
+            <div class="card detail-top">
+                <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:10px;">
+                    <input type="text" id="task-title" class="title-input" onchange="updateTask('title', this.value)">
+                    <span id="progress-text" style="font-size:24px; font-weight:900; color:rgba(139,92,246,0.3);">0%</span>
                 </div>
                 
-                <div class="flex items-center gap-2 mb-4">
-                    <input type="time" id="task-time" onchange="saveData()" class="bg-gray-900 text-[10px] text-gray-400 border border-gray-700 rounded px-1">
-                    <span class="text-[10px] text-gray-600">每日提醒</span>
+                <div style="margin-bottom:15px;">
+                    <input type="time" id="task-time" onchange="updateTask('time', this.value)" style="width:auto; padding:2px 5px; font-size:12px;">
                 </div>
 
-                <div class="w-full h-1 bg-gray-800 rounded-full mb-4 overflow-hidden">
-                    <div id="prog-bar" class="h-full bg-purple-500 transition-all duration-500" style="width: 0%"></div>
+                <div class="progress-track" style="margin-bottom:15px;">
+                    <div id="progress-bar" class="progress-fill" style="width:0%"></div>
                 </div>
 
-                <div id="subs" class="flex-1 overflow-y-auto space-y-2 mb-2"></div>
-                
-                <div class="flex gap-2 mt-auto">
-                    <input id="sub-input" placeholder="添加步骤..." class="flex-1 bg-white/5 border border-gray-800 rounded p-2 text-sm text-white outline-none">
-                    <button onclick="addSub()" class="bg-purple-600 text-white px-4 rounded text-sm font-bold">添加</button>
+                <div id="subtask-list" style="flex:1; overflow-y:auto; margin-bottom:10px;"></div>
+
+                <div style="display:flex; gap:10px;">
+                    <input type="text" id="new-sub-input" placeholder="输入下一步..." style="flex:1;">
+                    <button onclick="addSubTask()">添加</button>
                 </div>
             </div>
 
-            <div class="bento-card rounded-xl p-3 h-1/3 flex flex-col">
-                <div class="flex gap-4 border-b border-gray-800 pb-2 mb-2 text-[10px] font-bold">
-                    <button onclick="setTab('sop')" id="btn-sop" class="tab-active">SOP 攻略</button>
-                    <button onclick="saveSop()" class="ml-auto text-purple-400">保存内容</button>
+            <div class="card detail-bottom">
+                <div style="border-bottom:1px solid var(--border); margin-bottom:10px; display:flex; gap:10px;">
+                    <button class="tab-btn active" onclick="switchTab('sop')" id="tab-sop">SOP 攻略</button>
+                    <button class="tab-btn" onclick="switchTab('data')" id="tab-data">数据搬运</button>
+                    <button class="tab-btn" style="margin-left:auto; color:var(--accent);" onclick="saveCurrent()">保存</button>
                 </div>
+
+                <textarea id="area-sop" style="flex:1; resize:none; font-family:monospace; line-height:1.5;" placeholder="在此粘贴 SOP 内容..."></textarea>
                 
-                <textarea id="sop-area" class="flex-1 bg-transparent text-xs text-gray-400 resize-none outline-none"></textarea>
-                
-                <div class="mt-2 flex justify-end">
-                    <button onclick="forceRestore()" class="text-[10px] bg-red-900/30 text-red-500 px-3 py-1 rounded border border-red-500/30 hover:bg-red-900/50">
-                        🆘 点此找回我的 5 条数据
-                    </button>
+                <div id="area-data" style="display:none; flex:1; flex-direction:column; gap:10px;">
+                    <p style="font-size:12px; color:#888; margin:0;">若需同步到手机，请复制下方内容发送。</p>
+                    <textarea id="data-export" style="flex:1; font-size:10px; color:#888;" readonly></textarea>
+                    <div style="display:flex; gap:10px;">
+                        <button class="secondary" onclick="copyData()" style="flex:1;">1. 复制所有数据</button>
+                        <button onclick="pasteData()" style="flex:1;">2. 粘贴并导入</button>
+                    </div>
                 </div>
             </div>
         </section>
     </main>
 
     <script>
-        // 你的原始数据，已硬编码在此
-        const MY_DATA = [{"id":1769856578154,"title":"dankoe的在一天内彻底改变人生到底有多强大","subtasks":[],"reminderTime":"","lastReminderDate":"","sop":"","reflection":"","completed":false},{"id":1769855581999,"title":"做一个每日提醒dankoe写的问题提醒，并且有心得体会回答的那种，每天都可以","subtasks":[],"reminderTime":"","lastReminderDate":"","sop":"","reflection":"","completed":false},{"id":1769850813071,"title":"换推特号，写一篇关于煜子显化和dan改变一天的相联系的文章，发表到推特，小红书，微信公众号，微信公众号带广告","subtasks":[],"reminderTime":"","lastReminderDate":"","sop":"","reflection":"","completed":false},{"id":1769786819936,"title":"写一篇公众号种草，话题忘记了","subtasks":[{"id":1769831964603,"text":"选题","done":false},{"id":1769844089144,"text":"选题：为什么说，ai时代我们的优势更多了？为什么说，不用担心ai替代我们？ai时代，我们就是会被替代的？","done":false}],"reminderTime":"08:00","lastReminderDate":"","sop":"","reflection":"","completed":false},{"id":1769774974790,"title":"终点系统网页制作","subtasks":[{"id":1769774994705,"text":"建立大纲","done":true},{"id":1769780006388,"text":"坚定自己的想法，任务内容必须要全，一定要每条强调自己的想法，不要被ai所带跑，不要让ai省劲。","done":true},{"id":1769780063553,"text":"分享给朋友，让他们体验并且反馈继续改进，不要忘记自己想法","done":true},{"id":1769785151601,"text":"学会如何在github里面做网址","done":true},{"id":1769785458872,"text":"加入使用手册","done":true}],"reminderTime":"08:09","lastReminderDate":"","sop":"# 🎖️ 全能开发者：项目全生命周期作战协议 (v3.0)\n\n## 阶段一：建立大纲 (The Skeleton)\n- **硬性要求**：严禁直接让 AI 开工。必须先手动敲定 1, 2, 3 级功能大纲。\n- **目标**：在 AI 介入前，逻辑阵地必须由你百分之百占领。\n\n## 阶段二：意志捍卫与反 AI 简化 (Integrity Guard) 🛡️\n- **作战准则**：\n    1. **全量扫描**：每一条原始想法必须在代码中体现，AI 漏掉一条，立刻命令重写。\n    2. **拒绝偷懒**：看到 `// code remains the same` 或省略号，视为 AI 违规，强制要求全量输出。\n    3. **主权声明**：在 Prompt 中明确“我是架构师，你只是执行器”。\n\n## 阶段三：社交验证与反馈吸收 (Social Testing)\n- **动作**：将原型发给朋友体验。\n- **反馈处理**：记录所有反馈，但只采纳“不违背初衷”的建议。记住：你是产品的灵魂。\n\n## 阶段四：GitHub Pages 自动化部署 (Deployment) 🌐\n- **流程**：新建 Repo -> 上传 `index.html` -> Settings 开启 Pages -> 获得全球唯一域名。\n- **标准**：部署后，必须在手机 Safari 下测试“添加到主屏幕”的兼容性。\n\n## 阶段五：交付件：编写使用手册 (User Manual) 📘\n- **核心任务**：为你开发的这个新工具写一份“白痴级”使用指南。\n- **必须包含**：\n    1. **核心功能说明**：这个工具是干什么的？\n    2. **环境依赖**：需要什么浏览器？是否需要授权通知？\n    3. **操作流程**：第一步点哪里，第二步怎么做。\n    4. **故障排除**：如果没反应，应该检查哪里（如权限、缓存等）。\n- **意义**：手册是防止用户“误读”你作品的最后一道防线。","reflection":"","completed":false}];
+        // --- 1. 数据硬植入 (你的原始数据) ---
+        const HARD_CODED_DATA = [{"id":1769856578154,"title":"dankoe的在一天内彻底改变人生到底有多强大","subtasks":[],"reminderTime":"","sop":""},{"id":1769855581999,"title":"做一个每日提醒dankoe写的问题提醒，并且有心得体会回答的那种","subtasks":[],"reminderTime":"","sop":""},{"id":1769850813071,"title":"换推特号，写一篇关于煜子显化和dan改变一天的相联系的文章","subtasks":[],"reminderTime":"","sop":""},{"id":1769786819936,"title":"写一篇公众号种草，话题忘记了","subtasks":[{"text":"选题","done":false},{"text":"选题：为什么说，ai时代我们的优势更多了？","done":false}],"reminderTime":"08:00","sop":""},{"id":1769774974790,"title":"终点系统网页制作","subtasks":[{"text":"建立大纲","done":true},{"text":"坚定自己的想法...","done":true},{"text":"分享给朋友...","done":true},{"text":"学会如何在github里面做网址","done":true},{"text":"加入使用手册","done":true}],"reminderTime":"08:09","sop":"# 🎖️ 全能开发者协议 (v3.0)\n..."}];
 
         let tasks = [];
-        let curId = null;
+        let currentId = null;
+        let currentTab = 'sop';
 
+        // --- 2. 初始化 ---
         window.onload = function() {
-            // 尝试加载本地，如果没有则使用硬编码数据
-            const oldData = localStorage.getItem('cmd_v61_data');
-            if (oldData) {
-                try { tasks = JSON.parse(oldData); } catch(e) { tasks = MY_DATA; }
+            // 优先读取本地最新的，如果没有，就用硬植入的数据
+            const local = localStorage.getItem('cmd_v7_data');
+            if(local && local.length > 20) {
+                try { tasks = JSON.parse(local); } catch(e) { tasks = HARD_CODED_DATA; }
             } else {
-                tasks = MY_DATA; // 默认加载你的数据
+                tasks = HARD_CODED_DATA;
             }
-            
-            // 确保有数据
-            if (tasks.length === 0) tasks = MY_DATA;
 
+            // 渲染
             renderList();
-            if (tasks.length > 0) selectTask(tasks[0].id);
+            if(tasks.length > 0) selectTask(tasks[0].id);
+            else addTask(); // 如果没任务，新建一个
         };
 
-        // 强制恢复数据
-        function forceRestore() {
-            if(confirm("确定要重新加载你的5条原始数据吗？这将覆盖当前变动。")) {
-                tasks = MY_DATA;
-                saveData();
-                renderList();
-                selectTask(tasks[0].id);
-                alert("数据已复活！");
-            }
-        }
-
+        // --- 3. 核心逻辑 ---
         function saveData() {
-            localStorage.setItem('cmd_v61_data', JSON.stringify(tasks));
+            localStorage.setItem('cmd_v7_data', JSON.stringify(tasks));
+            // 实时更新导出框
+            document.getElementById('data-export').value = JSON.stringify(tasks);
         }
 
         function addTask() {
-            const t = prompt("新任务名称:");
-            if (!t) return;
-            const newId = Date.now();
-            tasks.unshift({id: newId, title: t, subs: [], sop: "", reminderTime: ""});
-            selectTask(newId);
-            saveData(); renderList();
+            const id = Date.now();
+            tasks.unshift({ id: id, title: "新任务 " + new Date().toLocaleTimeString(), subtasks: [], sop: "", reminderTime: "" });
+            selectTask(id);
+            renderList();
+            saveData();
+        }
+
+        function selectTask(id) {
+            currentId = id;
+            renderList(); // 更新高亮
+            renderDetail();
         }
 
         function renderList() {
-            const el = document.getElementById('list');
-            el.innerHTML = tasks.map(t => {
-                const prog = calcProg(t);
+            const container = document.getElementById('list-container');
+            container.innerHTML = tasks.map(t => {
+                const total = t.subtasks ? t.subtasks.length : 0;
+                const done = t.subtasks ? t.subtasks.filter(s => s.done).length : 0;
+                const percent = total === 0 ? 0 : Math.round((done / total) * 100);
+                
                 return `
-                <div onclick="selectTask(${t.id})" class="p-2 mb-2 rounded border cursor-pointer ${t.id === curId ? 'bg-purple-900/20 border-purple-500' : 'border-gray-800 hover:bg-gray-800'}">
-                    <div class="flex justify-between text-[10px] mb-1 text-gray-300">
-                        <span class="font-bold truncate pr-2">${t.title}</span>
-                        <span class="${prog===100?'text-green-500':'text-purple-500'}">${prog}%</span>
+                <div class="task-item ${t.id === currentId ? 'active' : ''}" onclick="selectTask(${t.id})">
+                    <div class="task-header">
+                        <span style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:80%;">${t.title}</span>
+                        <span style="color:var(--accent);">${percent}%</span>
                     </div>
-                    <div class="w-full h-[2px] bg-gray-800 rounded overflow-hidden">
-                        <div class="bg-purple-500 h-full" style="width: ${prog}%"></div>
+                    <div class="progress-track">
+                        <div class="progress-fill" style="width:${percent}%"></div>
                     </div>
                 </div>`;
             }).join('');
         }
 
-        function selectTask(id) {
-            curId = id;
-            const t = tasks.find(x => x.id === id);
-            if (!t) return;
-            
+        function renderDetail() {
+            const t = tasks.find(x => x.id === currentId);
+            if(!t) return;
+
             document.getElementById('task-title').value = t.title;
             document.getElementById('task-time').value = t.reminderTime || "";
-            document.getElementById('sop-area').value = t.sop || "";
-            
-            renderSubs(); renderList();
-        }
+            document.getElementById('area-sop').value = t.sop || "";
 
-        function renderSubs() {
-            const t = tasks.find(x => x.id === curId);
-            const prog = calcProg(t);
-            document.getElementById('prog-bar').style.width = prog + "%";
-            document.getElementById('prog-num').innerText = prog + "%";
-            
-            document.getElementById('subs').innerHTML = t.subs.map((s, i) => `
-                <div class="flex items-center gap-2 p-2 rounded hover:bg-white/5 cursor-pointer" onclick="toggleSub(${i})">
-                    <div class="w-3 h-3 border border-gray-500 rounded flex items-center justify-center ${s.done ? 'bg-purple-500 border-purple-500' : ''}">
-                        ${s.done ? '<span class="text-white text-[8px]">✓</span>' : ''}
-                    </div>
-                    <span class="text-xs ${s.done ? 'text-gray-600 line-through' : 'text-gray-300'}">${s.text || s.d}</span>
+            // 渲染子任务
+            const subContainer = document.getElementById('subtask-list');
+            subContainer.innerHTML = (t.subtasks || []).map((s, idx) => `
+                <div class="subtask-row ${s.done ? 'checked' : ''}" onclick="toggleSub(${idx})">
+                    <div class="check-box">${s.done ? '✓' : ''}</div>
+                    <span>${s.text}</span>
                 </div>
             `).join('');
+
+            // 更新进度条
+            const total = t.subtasks ? t.subtasks.length : 0;
+            const done = t.subtasks ? t.subtasks.filter(s => s.done).length : 0;
+            const percent = total === 0 ? 0 : Math.round((done / total) * 100);
+            document.getElementById('progress-bar').style.width = percent + "%";
+            document.getElementById('progress-text').innerText = percent + "%";
         }
 
-        function addSub() {
-            const val = document.getElementById('sub-input').value;
-            if (!val) return;
-            tasks.find(x => x.id === curId).subs.push({text: val, done: false});
-            document.getElementById('sub-input').value = "";
-            saveData(); renderSubs(); renderList();
+        function updateTask(field, value) {
+            const t = tasks.find(x => x.id === currentId);
+            if(field === 'title') t.title = value;
+            if(field === 'time') t.reminderTime = value;
+            saveData();
+            if(field === 'title') renderList();
+        }
+
+        function addSubTask() {
+            const input = document.getElementById('new-sub-input');
+            if(!input.value) return;
+            const t = tasks.find(x => x.id === currentId);
+            if(!t.subtasks) t.subtasks = [];
+            t.subtasks.push({ text: input.value, done: false });
+            input.value = "";
+            saveData(); renderDetail(); renderList();
         }
 
         function toggleSub(idx) {
-            const t = tasks.find(x => x.id === curId);
-            t.subs[idx].done = !t.subs[idx].done;
-            saveData(); renderSubs(); renderList();
+            const t = tasks.find(x => x.id === currentId);
+            t.subtasks[idx].done = !t.subtasks[idx].done;
+            saveData(); renderDetail(); renderList();
         }
 
-        function updateTitle() {
-            tasks.find(x => x.id === curId).title = document.getElementById('task-title').value;
-            saveData(); renderList();
+        function saveCurrent() {
+            if(currentTab === 'sop') {
+                const t = tasks.find(x => x.id === currentId);
+                t.sop = document.getElementById('area-sop').value;
+                saveData();
+                alert("SOP 已保存");
+            }
         }
 
-        function saveSop() {
-            tasks.find(x => x.id === curId).sop = document.getElementById('sop-area').value;
-            saveData(); alert("SOP 已保存");
+        // --- 4. 搬运功能 ---
+        function switchTab(tab) {
+            currentTab = tab;
+            document.getElementById('area-sop').style.display = tab === 'sop' ? 'block' : 'none';
+            document.getElementById('area-data').style.display = tab === 'data' ? 'flex' : 'none';
+            document.getElementById('tab-sop').className = tab === 'sop' ? 'tab-btn active' : 'tab-btn';
+            document.getElementById('tab-data').className = tab === 'data' ? 'tab-btn active' : 'tab-btn';
+            
+            if(tab === 'data') {
+                document.getElementById('data-export').value = JSON.stringify(tasks);
+            }
         }
 
-        function calcProg(t) {
-            if (!t.subtasks && !t.subs) return 0;
-            const s = t.subtasks || t.subs;
-            if (s.length === 0) return 0;
-            return Math.round(s.filter(i => i.done).length / s.length * 100);
+        function copyData() {
+            const box = document.getElementById('data-export');
+            box.select();
+            document.execCommand('copy');
+            alert("数据已复制！请通过微信发给手机。");
         }
 
-        function setTab(t) { /* 占位，保持精简 */ }
+        async function pasteData() {
+            try {
+                const text = await navigator.clipboard.readText();
+                if(!text) return alert("剪贴板为空");
+                const newData = JSON.parse(text);
+                if(confirm("确定要导入这 " + newData.length + " 条任务吗？当前数据将被覆盖。")) {
+                    tasks = newData;
+                    saveData();
+                    renderList();
+                    selectTask(tasks[0].id);
+                }
+            } catch(e) {
+                // 如果浏览器不支持自动读取剪贴板
+                const manual = prompt("请在此粘贴数据:");
+                if(manual) {
+                    try {
+                        tasks = JSON.parse(manual);
+                        saveData(); renderList(); selectTask(tasks[0].id);
+                    } catch(err) { alert("数据格式错误"); }
+                }
+            }
+        }
     </script>
 </body>
 </html>
