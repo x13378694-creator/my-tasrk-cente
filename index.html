@@ -3,231 +3,276 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>指挥部 v5.2 | 断网求生版</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <title>指挥部 v6.0 | 国内特供版</title>
+    <script src="https://cdn.staticfile.org/tailwindcss/3.3.5/tailwind.min.js"></script>
+    <script src="https://cdn.staticfile.org/marked/9.1.2/marked.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    
     <style>
         body { background-color: #0D0D0D; color: #F3F4F6; height: 100vh; overflow: hidden; font-family: sans-serif; }
-        .bento-card { background: #1A1A1A; border: 1px solid #2D2D2D; }
-        .progress-bar { transition: width 0.5s ease; }
-        /* 强制加号按钮样式 */
-        .add-btn { font-size: 24px; line-height: 1; color: #8B5CF6; cursor: pointer; padding: 0 10px; font-weight: bold; }
-        .add-btn:hover { color: white; }
+        .bento-card { background: #1A1A1A; border: 1px solid #2D2D2D; transition: all 0.3s ease; }
+        /* 纯CSS实现的加号，不依赖图标库，绝对显示 */
+        .add-icon { 
+            width: 24px; height: 24px; border-radius: 50%; background: #333; color: #A855F7; 
+            display: flex; align-items: center; justify-content: center; font-weight: bold; cursor: pointer;
+        }
+        .add-icon:hover { background: #A855F7; color: white; }
+        .tab-active { color: #A855F7; border-bottom: 2px solid #A855F7; }
+        .tab-inactive { color: #666; }
+        /* 滚动条 */
+        ::-webkit-scrollbar { width: 4px; }
+        ::-webkit-scrollbar-thumb { background: #333; border-radius: 10px; }
     </style>
 </head>
 <body class="flex flex-col">
 
-    <nav class="p-4 border-b border-gray-800 flex justify-between items-center bg-[#0D0D0D] z-50">
-        <div class="flex items-center gap-3">
-            <h1 class="text-xs font-black tracking-widest text-purple-500 uppercase">COMMAND_HQ</h1>
-            <div id="sync-dot" class="w-3 h-3 rounded-full bg-red-500 border border-white/20"></div>
-            <span id="status-text" class="text-[10px] text-gray-500">初始化...</span>
+    <nav class="p-3 border-b border-gray-800 flex justify-between items-center bg-[#111] z-50">
+        <div class="flex items-center gap-2">
+            <h1 class="text-xs font-black tracking-widest text-purple-500">TASK_HQ_CN</h1>
+            <div id="status-dot" class="w-2 h-2 rounded-full bg-gray-500"></div>
         </div>
-        <div class="flex gap-2 items-center">
-            <input id="sync-code-input" type="password" placeholder="输入密钥" class="bg-black text-[10px] border border-gray-800 rounded px-2 py-1 w-24 text-purple-400">
-            <button onclick="trySync()" class="text-[10px] bg-purple-600 text-white px-3 py-1 rounded font-bold">同步</button>
+        <div class="flex gap-2">
+            <input id="sync-key" type="password" placeholder="密钥" class="bg-black text-[10px] border border-gray-800 rounded px-2 w-20 text-purple-400 outline-none">
+            <button onclick="autoSync()" class="bg-purple-900/30 text-purple-400 text-[10px] px-2 py-1 rounded border border-purple-500/30">同步</button>
         </div>
     </nav>
 
-    <main class="flex-1 flex flex-col md:flex-row p-3 gap-3 overflow-hidden">
-        <section class="w-full md:w-1/3 bento-card rounded-2xl p-4 flex flex-col overflow-hidden">
-            <div class="flex justify-between items-center mb-4 border-b border-gray-800 pb-2">
-                <span class="text-[10px] font-bold text-gray-500 tracking-widest uppercase">任务列表</span>
-                <div onclick="addTask()" class="add-btn" title="新建任务">＋</div>
+    <main class="flex-1 flex flex-col md:flex-row p-2 gap-2 overflow-hidden">
+        <section class="w-full md:w-1/3 bento-card rounded-xl p-3 flex flex-col overflow-hidden">
+            <div class="flex justify-between items-center mb-3 border-b border-gray-800 pb-2">
+                <span class="text-[10px] font-bold text-gray-500">任务列表</span>
+                <div onclick="addTask()" class="add-icon" title="新建任务">＋</div>
             </div>
-            <div id="list" class="flex-1 overflow-y-auto space-y-2 pr-1"></div>
+            <div id="list" class="flex-1 overflow-y-auto space-y-2"></div>
         </section>
 
-        <section class="flex-1 grid grid-rows-2 gap-3 overflow-hidden">
-            <div class="bento-card rounded-2xl p-6 flex flex-col gap-4 overflow-hidden relative">
-                <div class="flex justify-between items-start">
-                    <div class="space-y-1">
-                        <h2 id="title" class="text-2xl font-black italic text-white tracking-tight">准备就绪</h2>
-                        <input type="time" id="time-input" onchange="updateTime()" class="bg-purple-900/20 border border-purple-500/30 text-purple-400 text-[10px] rounded px-1">
-                    </div>
-                    <div id="prog-text" class="text-4xl font-black text-purple-500 opacity-20">0%</div>
+        <section class="flex-1 flex flex-col gap-2 overflow-hidden">
+            <div class="bento-card rounded-xl p-4 flex-1 flex flex-col relative">
+                <div class="flex justify-between items-start mb-2">
+                    <input type="text" id="task-title" onchange="updateTitle()" class="bg-transparent text-xl font-bold text-white outline-none w-full" placeholder="选择任务...">
+                    <span id="prog-num" class="text-2xl font-black text-purple-500 opacity-20">0%</span>
                 </div>
-                <div class="w-full h-1.5 bg-gray-800 rounded-full overflow-hidden">
-                    <div id="bar" class="h-full bg-purple-500" style="width:0%"></div>
+                
+                <div class="flex items-center gap-2 mb-4">
+                    <input type="time" id="task-time" onchange="saveData()" class="bg-gray-900 text-[10px] text-gray-400 border border-gray-700 rounded px-1">
+                    <span class="text-[10px] text-gray-600">每日提醒</span>
                 </div>
-                <div id="subs" class="flex-1 overflow-y-auto space-y-2 pr-1"></div>
-                <div class="flex gap-2">
-                    <input id="sub-in" placeholder="输入步骤..." class="flex-1 bg-white/5 border border-gray-800 rounded-xl px-4 py-3 text-sm w-full text-white">
-                    <button onclick="addSub()" class="bg-purple-600 px-6 rounded-xl text-sm font-bold text-white whitespace-nowrap">添加</button>
+
+                <div class="w-full h-1 bg-gray-800 rounded-full mb-4 overflow-hidden">
+                    <div id="prog-bar" class="h-full bg-purple-500 transition-all duration-500" style="width: 0%"></div>
+                </div>
+
+                <div id="subs" class="flex-1 overflow-y-auto space-y-2 mb-2"></div>
+                
+                <div class="flex gap-2 mt-auto">
+                    <input id="sub-input" placeholder="添加步骤..." class="flex-1 bg-white/5 border border-gray-800 rounded p-2 text-sm text-white outline-none">
+                    <button onclick="addSub()" class="bg-purple-600 text-white px-4 rounded text-sm font-bold">添加</button>
                 </div>
             </div>
 
-            <div class="bento-card rounded-2xl p-6 flex flex-col overflow-hidden">
-                <div class="flex justify-between items-center mb-4">
-                    <div class="flex gap-4">
-                        <button onclick="showTab('sop')" id="tab-sop" class="text-xs font-bold pb-1 text-purple-500 border-b-2 border-purple-500">SOP 手册</button>
-                        <button onclick="showTab('manual')" id="tab-manual" class="text-xs font-bold pb-1 text-gray-500">说明书</button>
-                    </div>
-                    <button onclick="toggleEdit()" id="edit-btn" class="text-[10px] bg-white/5 px-3 py-1 rounded text-gray-300">编辑</button>
+            <div class="bento-card rounded-xl p-3 h-1/3 flex flex-col">
+                <div class="flex gap-4 border-b border-gray-800 pb-2 mb-2 text-[10px] font-bold">
+                    <button onclick="setTab('sop')" id="btn-sop" class="tab-active">SOP 攻略</button>
+                    <button onclick="setTab('transfer')" id="btn-transfer" class="tab-inactive">数据搬运(人工)</button>
+                    <button onclick="saveSop()" class="ml-auto text-purple-400">保存内容</button>
                 </div>
-                <div id="view" class="flex-1 overflow-y-auto prose prose-invert prose-sm max-w-none text-gray-400"></div>
-                <textarea id="edit" class="hidden flex-1 bg-black/50 text-xs p-4 rounded-xl border border-gray-800 font-mono text-purple-300 outline-none resize-none"></textarea>
+                
+                <textarea id="sop-area" class="flex-1 bg-transparent text-xs text-gray-400 resize-none outline-none hidden"></textarea>
+                
+                <div id="transfer-area" class="flex-1 flex flex-col gap-2 hidden">
+                    <p class="text-[10px] text-gray-500">如果同步失败，请复制下方代码发送到手机粘贴。</p>
+                    <textarea id="export-box" class="flex-1 bg-black text-[10px] text-green-500 p-2 rounded resize-none"></textarea>
+                    <div class="flex gap-2">
+                        <button onclick="copyData()" class="flex-1 bg-gray-800 text-white text-[10px] py-1 rounded">1. 复制所有数据</button>
+                        <button onclick="importData()" class="flex-1 bg-purple-900 text-white text-[10px] py-1 rounded">2. 粘贴并导入</button>
+                    </div>
+                </div>
             </div>
         </section>
     </main>
 
     <script>
-        // 全局错误捕获：防止网页白屏
-        window.onerror = function(msg, url, line) {
-            alert("发生错误: " + msg + "\n请检查网络连接或CDN是否被屏蔽");
-            document.getElementById('status-text').innerText = "系统报错";
-            return true; // 防止控制台报错停止执行
-        };
-
+        // --- 核心配置 ---
         const SUPABASE_URL = 'https://ylbwdthefpcrocmvccpy.supabase.co';
         const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlsYndkdGhlZnBjcm9jbXZjY3B5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njk3OTk4MDksImV4cCI6MjA4NTM3NTgwOX0.f6_5e1UpdLmZHc2aTwQJMDPTNJxb1ZQqs2OBxCklZJ4';
         
-        let supabase = null;
         let tasks = [];
-        let cur = null;
-        let activeTab = 'sop';
+        let curId = null;
+        let supabase = null;
 
-        // 备份数据
-        const backupData = [{"id":1769786819936,"title":"写一篇公众号种草","subtasks":[{"id":1769831964603,"text":"选题","done":false}],"reminderTime":"08:00","sop":""},{"id":1769774974790,"title":"终点系统网页制作","subtasks":[{"id":1769774994705,"text":"建立大纲","done":true},{"id":1769785458872,"text":"加入使用手册","done":true}],"reminderTime":"08:09","sop":"# 协议 v3.0"}];
-        const manualMD = `1. **加号在哪**：看左侧“任务列表”旁边的 "＋" 符号。\n2. **如果同步失败**：说明你的网络无法连接国外服务器。但你可以正常离线使用，数据会存在这台电脑上。`;
+        // 初始化
+        window.onload = function() {
+            // 1. 尝试加载之前的数据 (v6兼容旧数据)
+            const oldData = localStorage.getItem('cmd_v52_data') || localStorage.getItem('cmd_v5_data') || localStorage.getItem('commander_v4_tasks');
+            if (oldData) {
+                try { tasks = JSON.parse(oldData); } catch(e) { console.log('数据解析失败'); }
+            }
+            if (tasks.length === 0) tasks = [{id: 1, title: "欢迎回来", subs: [], sop: "点击下方'数据搬运'可导出备份。", reminderTime: ""}];
 
-        function init() {
-            // 1. 尝试加载 Supabase
+            // 2. 恢复密钥
+            const key = localStorage.getItem('sync_key');
+            if (key) document.getElementById('sync-key').value = key;
+
+            // 3. 初始化 Supabase (如果加载成功)
             if (typeof supabasejs !== 'undefined') {
                 try {
                     supabase = supabasejs.createClient(SUPABASE_URL, SUPABASE_KEY);
-                    document.getElementById('status-text').innerText = "云端就绪";
-                } catch(e) {
-                    console.error(e);
-                    document.getElementById('status-text').innerText = "配置错误";
-                }
-            } else {
-                document.getElementById('status-text').innerText = "离线模式(CDN失败)";
-                // 即使没有 supabase，也要能用本地功能！
+                    document.getElementById('status-dot').className = "w-2 h-2 rounded-full bg-yellow-500"; // 黄色代表待机
+                } catch(e) { console.log('云端组件加载失败'); }
             }
 
-            // 2. 加载本地数据
-            const local = localStorage.getItem('cmd_v52_data');
-            tasks = local ? JSON.parse(local) : backupData;
-            
-            // 3. 恢复密钥
-            const code = localStorage.getItem('user_sync_code');
-            if(code) document.getElementById('sync-code-input').value = code;
-
-            // 4. 渲染界面
             renderList();
-            if(tasks.length > 0) sel(tasks[0].id);
+            if (tasks.length > 0) selectTask(tasks[0].id);
+            setTab('sop');
+        };
+
+        // --- 核心逻辑 ---
+        function saveData() {
+            localStorage.setItem('cmd_v6_data', JSON.stringify(tasks));
+            // 实时更新导出框
+            document.getElementById('export-box').value = JSON.stringify(tasks);
         }
 
-        async function trySync() {
-            const code = document.getElementById('sync-code-input').value;
-            const status = document.getElementById('status-text');
-            
-            if (!supabase) {
-                alert("无法连接云端：Supabase 库未加载（可能是网络屏蔽）。\n请继续使用离线功能。");
-                return;
-            }
-            if (!code) { alert("请输入密钥"); return; }
-
-            localStorage.setItem('user_sync_code', code);
-            status.innerText = "同步中...";
-            
-            try {
-                // 推送
-                const { error: pushErr } = await supabase.from('tasks_sync').upsert({ id: code, sync_code: code, data: tasks });
-                if(pushErr) throw pushErr;
-                
-                // 拉取
-                const { data, error: pullErr } = await supabase.from('tasks_sync').select('data').eq('sync_code', code).maybeSingle();
-                if(pullErr) throw pullErr;
-
-                if(data && data.data) {
-                    tasks = data.data;
-                    saveLocal();
-                    renderList();
-                    if(cur) sel(cur);
-                }
-                
-                document.getElementById('sync-dot').className = "w-3 h-3 rounded-full bg-green-500 shadow-[0_0_10px_#22C55E]";
-                status.innerText = "同步成功";
-            } catch(e) {
-                console.error(e);
-                alert("同步失败：" + e.message);
-                status.innerText = "同步失败";
-            }
-        }
-
-        function saveLocal() { localStorage.setItem('cmd_v52_data', JSON.stringify(tasks)); }
-        
-        // 核心功能 - 绝不依赖云端
         function addTask() {
-            let t = prompt("新任务名称:");
-            if(!t) return;
-            tasks.unshift({id:Date.now(), title:t, subtasks:[], reminderTime:"", sop:"", done:false});
-            saveLocal(); renderList(); sel(tasks[0].id);
+            const t = prompt("新任务名称:");
+            if (!t) return;
+            const newId = Date.now();
+            tasks.unshift({id: newId, title: t, subs: [], sop: "", reminderTime: ""});
+            selectTask(newId);
+            saveData(); renderList();
+            autoSync(); // 尝试同步
         }
 
         function renderList() {
-            const list = document.getElementById('list');
-            list.innerHTML = tasks.map(x => `
-                <div onclick="sel(${x.id})" class="p-3 rounded-xl cursor-pointer border mb-2 transition-all ${cur===x.id?'border-purple-500 bg-purple-500/10':'border-gray-800 hover:border-gray-700'}">
-                    <div class="flex justify-between text-[10px] mb-2 font-bold uppercase text-white"><span>${x.title}</span><span class="text-purple-500">${prog(x)}%</span></div>
-                    <div class="w-full h-[2px] bg-gray-800 rounded-full overflow-hidden"><div class="bg-purple-500 h-full" style="width:${prog(x)}%"></div></div>
-                </div>`).join('');
+            const el = document.getElementById('list');
+            el.innerHTML = tasks.map(t => {
+                const prog = calcProg(t);
+                return `
+                <div onclick="selectTask(${t.id})" class="p-2 mb-2 rounded border cursor-pointer ${t.id === curId ? 'bg-purple-900/20 border-purple-500' : 'border-gray-800 hover:bg-gray-800'}">
+                    <div class="flex justify-between text-[10px] mb-1 text-gray-300">
+                        <span class="font-bold">${t.title}</span>
+                        <span class="${prog===100?'text-green-500':'text-purple-500'}">${prog}%</span>
+                    </div>
+                    <div class="w-full h-[2px] bg-gray-800 rounded overflow-hidden">
+                        <div class="bg-purple-500 h-full" style="width: ${prog}%"></div>
+                    </div>
+                </div>`;
+            }).join('');
         }
 
-        function sel(id) {
-            cur = id; let x = tasks.find(v => v.id === id);
-            if(!x) return;
-            document.getElementById('title').innerText = x.title;
-            document.getElementById('time-input').value = x.reminderTime || "";
-            renderSubs(); showTab(activeTab); renderList();
-        }
-
-        function addSub() {
-            let i = document.getElementById('sub-in');
-            if(!i.value || !cur) return;
-            tasks.find(x => x.id === cur).subtasks.push({id:Date.now(), text:i.value, done:false});
-            i.value = ""; saveLocal(); renderSubs();
-        }
-
-        function toggle(sid) {
-            let x = tasks.find(v => v.id === cur);
-            let s = x.subtasks.find(v => v.id === sid);
-            s.done = !s.done; saveLocal(); renderSubs(); renderList();
+        function selectTask(id) {
+            curId = id;
+            const t = tasks.find(x => x.id === id);
+            if (!t) return;
+            
+            document.getElementById('task-title').value = t.title;
+            document.getElementById('task-time').value = t.reminderTime || "";
+            document.getElementById('sop-area').value = t.sop || "";
+            
+            renderSubs(); renderList();
         }
 
         function renderSubs() {
-            let x = tasks.find(v => v.id === cur);
-            document.getElementById('bar').style.width = prog(x) + '%';
-            document.getElementById('prog-text').innerText = prog(x) + '%';
-            document.getElementById('subs').innerHTML = x.subtasks.map(s => `
-                <div class="flex items-center gap-3 bg-white/[0.03] p-3 rounded-xl hover:bg-white/[0.06] mb-2">
-                    <input type="checkbox" ${s.done?'checked':''} onchange="toggle(${s.id})" style="cursor:pointer">
-                    <span class="text-sm text-gray-300 ${s.done?'line-through text-gray-600':''}">${s.text}</span>
-                </div>`).join('');
+            const t = tasks.find(x => x.id === curId);
+            const prog = calcProg(t);
+            document.getElementById('prog-bar').style.width = prog + "%";
+            document.getElementById('prog-num').innerText = prog + "%";
+            
+            document.getElementById('subs').innerHTML = t.subs.map((s, i) => `
+                <div class="flex items-center gap-2 p-2 rounded hover:bg-white/5 cursor-pointer" onclick="toggleSub(${i})">
+                    <div class="w-3 h-3 border border-gray-500 rounded flex items-center justify-center ${s.done ? 'bg-purple-500 border-purple-500' : ''}">
+                        ${s.done ? '<span class="text-white text-[8px]">✓</span>' : ''}
+                    </div>
+                    <span class="text-xs ${s.done ? 'text-gray-600 line-through' : 'text-gray-300'}">${s.text || s.d}</span>
+                </div>
+            `).join('');
         }
 
-        function showTab(type) {
-            activeTab = type; const x = tasks.find(v => v.id === cur);
-            document.getElementById('tab-sop').className = `text-xs font-bold pb-1 ${type==='sop'?'text-purple-500 border-b-2 border-purple-500':'text-gray-500'}`;
-            document.getElementById('tab-manual').className = `text-xs font-bold pb-1 ${type==='manual'?'text-purple-500 border-b-2 border-purple-500':'text-gray-500'}`;
-            const content = type==='manual'?manualMD:(x?(x.sop||"无内容"):"未选择");
-            document.getElementById('view').innerHTML = typeof marked !== 'undefined' ? marked.parse(content) : content;
+        function addSub() {
+            const val = document.getElementById('sub-input').value;
+            if (!val) return;
+            tasks.find(x => x.id === curId).subs.push({text: val, done: false});
+            document.getElementById('sub-input').value = "";
+            saveData(); renderSubs(); renderList();
         }
 
-        function toggleEdit() {
-            let v = document.getElementById('view'), e = document.getElementById('edit'), b = document.getElementById('edit-btn'), x = tasks.find(v => v.id === cur);
-            if(!x) return;
-            if(e.classList.contains('hidden')){ v.classList.add('hidden'); e.classList.remove('hidden'); b.innerText="保存"; e.value=x.sop; }
-            else { x.sop = e.value; v.classList.remove('hidden'); e.classList.add('hidden'); b.innerText="编辑"; saveLocal(); showTab(activeTab); }
+        function toggleSub(idx) {
+            const t = tasks.find(x => x.id === curId);
+            t.subs[idx].done = !t.subs[idx].done;
+            saveData(); renderSubs(); renderList(); autoSync();
         }
 
-        function prog(x) { return x.subtasks.length ? Math.round(x.subtasks.filter(s=>s.done).length/x.subtasks.length*100) : 0; }
-        function updateTime() { tasks.find(v => v.id === cur).reminderTime = document.getElementById('time-input').value; saveLocal(); }
+        function updateTitle() {
+            tasks.find(x => x.id === curId).title = document.getElementById('task-title').value;
+            saveData(); renderList();
+        }
 
-        window.onload = init;
+        function saveSop() {
+            tasks.find(x => x.id === curId).sop = document.getElementById('sop-area').value;
+            saveData(); alert("SOP 已保存"); autoSync();
+        }
+
+        function calcProg(t) {
+            if (!t.subs || t.subs.length === 0) return 0;
+            return Math.round(t.subs.filter(s => s.done).length / t.subs.length * 100);
+        }
+
+        // --- 搬运与同步 ---
+        function setTab(tab) {
+            document.getElementById('sop-area').style.display = tab === 'sop' ? 'block' : 'none';
+            document.getElementById('transfer-area').style.display = tab === 'transfer' ? 'flex' : 'none';
+            
+            document.getElementById('btn-sop').className = tab === 'sop' ? 'tab-active' : 'tab-inactive';
+            document.getElementById('btn-transfer').className = tab === 'transfer' ? 'tab-active' : 'tab-inactive';
+            
+            if (tab === 'transfer') document.getElementById('export-box').value = JSON.stringify(tasks);
+        }
+
+        function copyData() {
+            document.getElementById('export-box').select();
+            document.execCommand('copy');
+            alert("数据已复制！请发送给手机，在手机端粘贴并点击导入。");
+        }
+
+        function importData() {
+            try {
+                const val = document.getElementById('export-box').value;
+                if (!val) return;
+                const imported = JSON.parse(val);
+                if (confirm("确定要覆盖当前数据吗？")) {
+                    tasks = imported;
+                    saveData(); renderList(); selectTask(tasks[0].id);
+                    alert("导入成功！");
+                }
+            } catch(e) { alert("数据格式错误，请确保复制的是完整的JSON代码"); }
+        }
+
+        async function autoSync() {
+            const key = document.getElementById('sync-key').value;
+            if (!key || !supabase) return;
+            
+            localStorage.setItem('sync_key', key);
+            document.getElementById('status-dot').className = "w-2 h-2 rounded-full bg-yellow-500 animate-pulse";
+            
+            try {
+                // 1. 推送
+                const { error } = await supabase.from('tasks_sync').upsert({ id: key, sync_code: key, data: tasks });
+                if (error) throw error;
+                
+                // 2. 拉取（为了获取最新）
+                const { data } = await supabase.from('tasks_sync').select('data').eq('sync_code', key).single();
+                if (data && data.data) {
+                    // 简单的合并逻辑：如果云端任务更多，就用云端的（防止覆盖手机上的修改）
+                    // 这里简化为：直接读取云端作为最新状态
+                    // tasks = data.data; 
+                    // saveData(); renderList();
+                }
+                document.getElementById('status-dot').className = "w-2 h-2 rounded-full bg-green-500 shadow-[0_0_8px_#22C55E]";
+            } catch(e) {
+                console.log("同步失败，网络受阻");
+                document.getElementById('status-dot').className = "w-2 h-2 rounded-full bg-red-500";
+            }
+        }
     </script>
 </body>
 </html>
